@@ -1,0 +1,89 @@
+{
+    "cars": [
+        {
+            "lifting table": "20",
+            "technician": "NGUYỄN TUẤN TÚ",
+            "content": "KINH CHAO QUY KHACH",
+            "status": "ĐANG SỬA",
+            "ID": "2",
+            "customer": "NGUYỄN THÁI BẢO",
+            "licensePlate": "59YA51411",
+            "timeSpent": "80",
+            "timeLeft": "20"
+        },
+        {
+            "lifting table": "15",
+            "technician": "TRẦN VĂN A",
+            "content": "CHÂN THÀNH CẢM ƠN",
+            "status": "ĐANG SỬA",
+            "ID": "3",
+            "customer": "PHAN VĂN BÌNH",
+            "licensePlate": "30F12345",
+            "timeSpent": "60",
+            "timeLeft": "40"
+        },
+        {
+            "lifting table": "16",
+            "technician": "HOÀNG TUẤN KHẢI",
+            "content": "CHÂN THÀNH CẢM ƠN",
+            "status": "ĐÃ XONG",
+            "ID": "5",
+            "customer": "LÊ VĂN NAM",
+            "licensePlate": "30F12345",
+            "timeSpent": "50",
+            "timeLeft": "10"
+        }
+    ],
+    "ListCustomers": [
+        {
+            "ID": "1",
+            "customer": "NGUYỄN THÁI BẢO",
+            "licensePlate": "59YA51411",
+            "time": "19/10/2024 9:00:12",
+            "receive": "receive",
+            "cancel": "cancel"
+        },
+        {
+            "ID": "2",
+            "customer": "NGUYỄN THÁI NAM",
+            "licensePlate": "59YA47855",
+            "time": "19/10/2024 11:19:22",
+            "receive": "receive",
+            "cancel": "cancel"
+        },
+        {
+            "ID": "3",
+            "customer": "TRẦN VĂN BÌNH",
+            "licensePlate": "30F12345",
+            "time": "16/10/2024 14:30:22",
+            "receive": "receive",
+            "cancel": "cancel"
+        }
+    ],
+    "done": [
+        {
+            "ID": "1",
+            "customer": "NGUYỄN THÁI BẢO",
+            "licensePlate": "59YA51411",
+            "time": "19/10/2024 12:00:11",
+            "receive": "receive",
+            "Notification": "Notification"
+        },
+        {
+            "ID": "2",
+            "customer": "NGUYỄN THÁI SƠN",
+            "licensePlate": "59YA51455",
+            "time": "19/10/2024 14:00:11",
+            "receive": "receive",
+            "Notification": "Notification"
+        },
+        {
+            "ID": "3",
+            "customer": "PHAN VĂN BÌNH",
+            "licensePlate": "30F12345",
+            "time": "16/10/2024 17:19:00",
+            "receive": "receive",
+            "Notification": "Notification"
+        }
+    ]
+}

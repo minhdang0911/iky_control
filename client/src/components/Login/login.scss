@@ -1,0 +1,142 @@
+/* General styles */
+body {
+    font-family: Arial, sans-serif;
+    background: #f0f0f0;
+}
+
+.auth-form-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.password-container {
+    position: relative;
+}
+
+.eye-icon {
+    position: absolute;
+    right: 10px; /* Đặt biểu tượng cách bên phải một chút */
+    top: 50%; /* Căn giữa theo chiều dọc */
+    transform: translateY(-50%); /* Căn giữa chính xác */
+    cursor: pointer; /* Thay đổi con trỏ khi di chuột vào icon */
+    color: #666; /* Màu của biểu tượng mắt */
+    font-size: 20px; /* Kích thước của biểu tượng mắt */
+}
+
+.auth-form {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-in-out;
+}
+
+.auth-form select {
+    max-width: 400px; /* Đặt chiều rộng tối đa cho dropdown */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Hiển thị dấu ba chấm */
+    white-space: nowrap; /* Ngăn không cho dòng xuống */
+}
+
+/* Tùy chọn trong dropdown */
+.auth-form select option {
+    white-space: nowrap; /* Ngăn không cho dòng xuống */
+    max-width: 300px; /* Đặt chiều rộng tối đa cho tùy chọn */
+    font-size: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auth-form {
+        width: 90%;
+    }
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+input:focus,
+select:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.auth-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.auth-button:hover {
+    background-color: #2980b9;
+}
+
+/* Messages */
+.message {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.message.success {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.message.error {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* Toggle Link */
+.toggle-auth {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #3498db;
+}
+
+.toggle-auth:hover {
+    text-decoration: underline;
+}

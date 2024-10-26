@@ -1,0 +1,60 @@
+.create-store-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.page-store {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.create-store-form {
+    display: flex;
+    flex-direction: column;
+
+    .form-group {
+        margin-bottom: 15px;
+
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+        }
+    }
+
+    .create-store-button {
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: #28a745;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+
+        &:hover {
+            background-color: #218838;
+        }
+    }
+}
+
+.activePage {
+    color: white; /* Màu chữ */
+    border-color: #007bff; /* Đường viền */
+    transition: background-color 0.3s ease; /* Hiệu ứng chuyển đổi */
+
+    &:hover {
+        color: white; /* Giữ màu chữ */
+    }
+}

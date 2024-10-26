@@ -1,0 +1,78 @@
+{
+    "cars": [
+        {
+            "licensePlate": "59YA51411",
+            "customer": "NGUYỄN THÁI BẢO",
+            "status": "ĐANG SỬA",
+            "timeSpent": "80",
+            "timeLeft": "20",
+            "technician": "NGUYỄN TUẤN TÚ"
+        },
+        {
+            "licensePlate": "59YA51412",
+            "customer": "NGUYỄN THÁI NAM",
+            "status": "ĐÃ XONG",
+            "timeSpent": "100",
+            "timeLeft": "50",
+            "technician": "NGÔ VĂN SƠN"
+        },
+        {
+            "licensePlate": "59YA51413",
+            "customer": "NGUYỄN THÁI VŨ",
+            "status": "ĐANG SỬA",
+            "timeSpent": "40",
+            "timeLeft": "0",
+            "technician": "LÊ VĂN TUẤN"
+        },
+        {
+            "licensePlate": "51YB99999",
+            "customer": "Lê VĂN NAM",
+            "status": "ĐANG SỬA",
+            "timeSpent": "70",
+            "timeLeft": "30",
+            "technician": "HOÀNG VĂN THẠNH "
+        },
+        {
+            "licensePlate": "34YT45122",
+            "customer": "LÊ TUẤN KHÔI",
+            "status": "ĐÃ XONG",
+            "timeSpent": "80",
+            "timeLeft": "40",
+            "technician": "LƯU KHÔI VỸ"
+        }
+    ],
+    "receivedCustomers": [
+        {
+            "customer": "NGUYỄN THÁI BẢO",
+            "licensePlate": "59YA51411",
+            "time": "10:11"
+        },
+        {
+            "customer": "TRẦN VĂN ANH",
+            "licensePlate": "59YA51412",
+            "time": "10:30"
+        },
+        {
+            "customer": "LÊ VĂN NAM",
+            "licensePlate": "59YB99999",
+            "time": "10:30"
+        }
+    ],
+    "return": [
+        {
+            "customer": "NGUYỄN THÁI BẢO",
+            "licensePlate": "59YA51411",
+            "time": "10:11"
+        },
+        {
+            "customer": "TRẦN VĂN ANH",
+            "licensePlate": "59YA51412",
+            "time": "10:30"
+        },
+        {
+            "customer": "NGUYỄN THÀNH CÔNG",
+            "licensePlate": "59YA32132",
+            "time": "11:30"
+        }
+    ]
+}
