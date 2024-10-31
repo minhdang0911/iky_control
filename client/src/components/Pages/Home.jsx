@@ -7,8 +7,8 @@ import logo from '../../assets/img/logocompany.png';
 import product1 from '../../assets/img/product1.webp';
 import product2 from '../../assets/img/product2.jpg';
 import { Link } from 'react-router-dom';
-import { Form, Input, Button, Typography, Col, Row } from 'antd';
-import { MapOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Col, Row } from 'antd';
+import { PhoneOutlined, MailOutlined } from '@ant-design/icons';
 import { Layout, Menu, Drawer } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 const { Header } = Layout;
@@ -30,6 +30,7 @@ const Home = () => {
     };
 
     useEffect(() => {
+        document.title = 'Trang chủ';
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -49,7 +50,7 @@ const Home = () => {
                 >
                     <div className="logo">
                         <Link to="/login">
-                            <img src={logo} alt="Logo" style={{ width: '50%', height: '50%' }} />
+                            <img src={logo} alt="Logo" style={{ width: '50%', height: '50%' }} loading="lazy" />
                         </Link>
                     </div>
                     {isMobile && ( // Hiển thị MenuOutlined chỉ khi ở giao diện di động
@@ -210,6 +211,7 @@ const Home = () => {
                                     src="images/sharing-design-ideas-with-family.jpg"
                                     className="about-image about-image-small img-fluid"
                                     alt=""
+                                    loading="lazy"
                                 />
                             </div>
 
@@ -218,6 +220,7 @@ const Home = () => {
                                     src="images/living-room-interior-wall-mockup-warm-tones-with-leather-sofa-which-is-kitchen-3d-rendering.jpg"
                                     className="about-image img-fluid"
                                     alt=""
+                                    loading="lazy"
                                 />
                             </div>
                         </div>
@@ -263,7 +266,12 @@ const Home = () => {
                                 <div className="shop-thumb">
                                     <div className="shop-image-wrap">
                                         <Link to="/">
-                                            <img src={product1} className="shop-image img-fluid" alt="" />
+                                            <img
+                                                src={product1}
+                                                className="shop-image img-fluid"
+                                                alt=""
+                                                loading="lazy"
+                                            />
                                         </Link>
 
                                         <div className="shop-icons-wrap">
@@ -296,7 +304,12 @@ const Home = () => {
                                 <div className="shop-thumb">
                                     <div className="shop-image-wrap">
                                         <Link to href="/">
-                                            <img src={product2} className="shop-image img-fluid" alt="" />
+                                            <img
+                                                src={product2}
+                                                className="shop-image img-fluid"
+                                                alt=""
+                                                loading="lazy"
+                                            />
                                         </Link>
 
                                         <div className="shop-icons-wrap">

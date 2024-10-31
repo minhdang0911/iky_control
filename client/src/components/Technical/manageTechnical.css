@@ -3,11 +3,9 @@
     margin: 0;
     padding: 0;
 }
-
 body {
     font-family: Arial, sans-serif;
 }
-
 .form-container {
     display: flex;
     justify-content: center;
@@ -15,7 +13,6 @@ body {
     min-height: 100vh;
     background-color: #f7f9fc;
 }
-
 .form-content {
     width: 100%;
     max-width: 400px;
@@ -24,22 +21,18 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
 h3 {
     text-align: center;
     margin-bottom: 20px;
 }
-
 .form-group {
     margin-bottom: 15px;
 }
-
 label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
 }
-
 input,
 select {
     width: 100%;
@@ -48,13 +41,11 @@ select {
     border-radius: 4px;
     transition: border-color 0.3s;
 }
-
 input:focus,
 select:focus {
     border-color: #007bff;
     outline: none;
 }
-
 .btn-add-tech {
     width: 100%;
     padding: 10px;
@@ -65,11 +56,9 @@ select:focus {
     cursor: pointer;
     transition: background-color 0.3s;
 }
-
 .btn-add-tech:hover {
     background-color: #0056b3;
 }
-
 .toast {
     position: fixed;
     top: 20px;

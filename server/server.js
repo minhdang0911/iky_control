@@ -6,6 +6,7 @@ const techRoutes = require('./routes/technicianRoutes');
 const storeRoutes = require('./routes/store');
 const liftTableRoutes = require('./routes/liftTableRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const customerRoutes = require('./routes/customerRoutes');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -21,7 +22,7 @@ app.use('/api/technical', techRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/lifttable', liftTableRoutes);
 app.use('/api/category', categoryRoutes);
-// Kết nối MongoDB
+app.use('/api/customer', customerRoutes);
 mongoose
     .connect(process.env.MONGO_URI, {
         useNewUrlParser: true,

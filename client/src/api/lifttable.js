@@ -7,11 +7,10 @@ export const apiCreateLiftTable = (data) => {
     });
 };
 
-export const apiGetLiftTable = (data) => {
+export const apiGetLiftTable = (storeId) => {
     return axios({
-        url: '/lifttable/getTables',
-        method: 'post',
-        data,
+        url: `/lifttable/getTables?storeId=${storeId}`,
+        method: 'get',
     });
 };
 

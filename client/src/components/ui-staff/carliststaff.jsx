@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import './carliststaff.scss';
 import icons from '../../Utils/icons';
 import {
@@ -26,8 +26,12 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from '../../assets/img/logocompany.png';
 import Swal from 'sweetalert2';
-import { apiDeleteLiftTable } from '../../api/lifttable';
+import { apiDeleteLiftTable, apiGetLiftTable } from '../../api/lifttable';
+import { apiGetCustomers } from '../../api/customer';
 import { apiLogout } from '../../api/user';
+import CreateStore from '../Admin/Store/ManageStore';
+import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
+import { Accordion, Card, Table } from 'react-bootstrap';
 
 const Dashboard = () => {
     const [cars, setCars] = useState([]);
@@ -43,7 +47,15 @@ const Dashboard = () => {
     const [lastName, setLastName] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [data, setData] = useState([]);
+    const [hideStore, setHideStore] = useState(true);
+    const [customers, setCustomers] = useState([]);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
     // const [selectedCar, setSelectedCar] = useState(null); // State lưu dữ liệu của hàng được chọn
+
+    //api thực tế
+    const [serviceWating, setServiceWaiting] = useState([]);
+    const [expandedRows, setExpandedRows] = useState({});
+    const [expandedService, setExpandedService] = useState(null);
 
     const modals = [
         { key: 'isShowModalCreateLiftingTable', component: Modalcreateliftingtable },
@@ -189,9 +201,18 @@ const Dashboard = () => {
 
     const handleRowClick = (carId) => {
         const index = cars.findIndex((car) => car._id === carId);
-        setSelectedCarRoww(carId); // Lưu ID cho mục đích khác nếu cần
-        setSelectedIndex(index); // Lưu chỉ số của bản nâng
+        setSelectedCarRoww(carId);
+        setSelectedIndex(index);
     };
+
+    const handleRowClickCustomer = (customer) => {
+        const index = customers.findIndex((c) => c._id === customer._id);
+        setSelectedCustomerRow(index);
+        setSelectedCustomer(customer);
+    };
+
+    console.log('Selected Customer Row:', selectedCustomerRow);
+    console.log('Selected Customer Data:', selectedCustomer);
 
     const handleIncreaseTime = (timeToIncrease) => {
         const index = selectedIndex;
@@ -314,6 +335,94 @@ const Dashboard = () => {
         return () => clearTimeout(tokenExpirationTimeout);
     }, []);
 
+    const token = localStorage.getItem('token');
+
+    // Hàm thông báo hết hạn token
+    const handleTokenExpired = useCallback(() => {
+        Swal.fire({
+            title: 'Phiên đăng nhập đã hết hạn!',
+            text: 'Vui lòng đăng nhập lại.',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                localStorage.removeItem('token');
+                setIsLoggedIn(false);
+                setFirstName('');
+                setLastName('');
+                navigate('/login');
+            }
+        });
+    }, [navigate]);
+
+    // Hàm lấy dữ liệu người dùng
+    const fetchUserData = useCallback(async () => {
+        if (!token) {
+            Swal.fire({
+                title: 'Bạn chưa đăng nhập!',
+                text: 'Vui lòng đăng nhập để tiếp tục.',
+                icon: 'warning',
+                confirmButtonText: 'OK',
+            }).then(() => {
+                navigate('/login');
+            });
+            return;
+        }
+
+        try {
+            const response = await axios.get('http://localhost:5000/api/user/getUser', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.data.success) {
+                const userData = response.data.rs;
+                setFirstName(userData.firstName);
+                setLastName(userData.lastName);
+                setIsLoggedIn(true);
+                setData(userData);
+
+                if (userData.storeId) {
+                    await fetchLiftTables(userData.storeId);
+                }
+            } else {
+                console.log('Lỗi xác thực người dùng:', response.data.message);
+                setIsLoggedIn(false);
+            }
+        } catch (error) {
+            if (error.response && error.response.status === 402) {
+                handleTokenExpired();
+            } else {
+                console.error('Lỗi từ server:', error.response?.data || error.message);
+            }
+        }
+    }, [token, handleTokenExpired]);
+
+    const fetchLiftTables = useCallback(
+        async (storeID) => {
+            try {
+                const response = await apiGetLiftTable(storeID);
+
+                if (response.success === true) {
+                    setCars(response.data);
+                } else {
+                    console.log('Lỗi lấy danh sách bàn nâng:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Lỗi khi lấy danh sách bàn nâng:', error);
+            }
+        },
+        [token],
+    );
+
+    useEffect(() => {
+        fetchUserData();
+
+        const expirationTime = 6000 * 1000;
+        const tokenExpirationTimeout = setTimeout(handleTokenExpired, expirationTime);
+
+        return () => clearTimeout(tokenExpirationTimeout);
+    }, [fetchUserData, handleTokenExpired]);
+
     const handleLogout = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -347,452 +456,500 @@ const Dashboard = () => {
     const handleAddNewLiftingTable = (newLiftingTable) => {
         setCars((prev) => [...prev, newLiftingTable]);
     };
+
+    // api thực tế
+    // useEffect(() => {
+    //     const fetchCustomer = async () => {
+    //         const token = localStorage.getItem('Access token');
+    //         console.log('token', token);
+    //         try {
+    //             const response = await fetch('/api/queues/list', {
+    //                 method: 'GET',
+    //                 headers: {
+    //                     Authorization: `Bearer ${token}`,
+    //                     'Content-Type': 'application/json',
+    //                 },
+    //             });
+
+    //             if (!response.ok) {
+    //                 throw new Error(`HTTP error! Status: ${response.status}`);
+    //             }
+
+    //             const data = await response.json();
+    //             setServiceWaiting(data.msg.customerWaiting);
+    //             console.log('data', serviceWating);
+    //         } catch (error) {
+    //             console.error('Error fetching customer data:', error);
+    //         }
+    //     };
+
+    //     fetchCustomer();
+    // }, []);
+
+    // api thực tế
+    // const toggleRow = (index) => {
+    //     setExpandedRows((prev) => ({
+    //         ...prev,
+    //         [index]: !prev[index], // Đảo trạng thái mở/đóng của hàng
+    //     }));
+    // };
+
+    //api thực tế
+    // const toggleService = (index) => {
+    //     setExpandedService((prev) => (prev === index ? null : index)); // Đóng mở bảng dịch vụ theo chỉ số
+    // };
+
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const fetchCustomers = async () => {
+            const response = await apiGetCustomers(token);
+            if (response) {
+                setCustomers(response.customers);
+                console.log(customers);
+            }
+        };
+        fetchCustomers();
+    }, []);
+
     return (
         <>
-            {isLoggedIn ? (
-                <div className="dashboard-container">
-                    {modals.map(
-                        ({ key, component: ModalComponent }) =>
-                            modalStates[key] && (
-                                <div className="modal-overlay" key={key}>
-                                    <ModalComponent
-                                        isShowModal={modalStates[key]} // Kiểm tra state modal
-                                        onClose={() => toggleModal(key)} // Đảm bảo toggleModal đóng đúng modal
-                                        onSubmit={handleModalSubmit} // Nếu có
-                                        selectedCar={cars[selectedIndex]}
-                                        onUpdate={handleModalSubmit} // Gọi cập nhật từ nơi khác
-                                        onHandle={handleModalSubmitCustomer}
-                                        receivedCustomers={receivedCustomers}
-                                        onDecreaseTime={handleDecreaseTime}
-                                        onIncreaseTime={handleIncreaseTime}
-                                        dataUser={data}
-                                        cars={cars}
-                                        onUpdateCars={updateCars}
-                                        onAddCars={handleAddNewLiftingTable}
-                                    />
+            <div className="dashboard-container">
+                {!hideStore && <CreateStore dataUser={data} />}
+                {modals.map(
+                    ({ key, component: ModalComponent }) =>
+                        modalStates[key] && (
+                            <div className="modal-overlay" key={key}>
+                                <ModalComponent
+                                    isShowModal={modalStates[key]} // Kiểm tra state modal
+                                    onClose={() => toggleModal(key)} // Đảm bảo toggleModal đóng đúng modal
+                                    onSubmit={handleModalSubmit} // Nếu có
+                                    selectedCar={cars[selectedIndex]}
+                                    onUpdate={handleModalSubmit} // Gọi cập nhật từ nơi khác
+                                    onHandle={handleModalSubmitCustomer}
+                                    receivedCustomers={receivedCustomers}
+                                    onDecreaseTime={handleDecreaseTime}
+                                    onIncreaseTime={handleIncreaseTime}
+                                    dataUser={data}
+                                    cars={cars}
+                                    onUpdateCars={updateCars}
+                                    onAddCars={handleAddNewLiftingTable}
+                                    selectedCustomer={selectedCustomer}
+                                />
+                            </div>
+                        ),
+                )}
+
+                <header className="header">
+                    <img src={logo} alt="Logo" className="header-logo" loading="lazy" />
+                    <div className="header-icons">
+                        {!isLoggedIn ? (
+                            <div></div>
+                        ) : (
+                            // <FaUser onClick={handleLoginClick} className="icon login-icon" title="Đăng nhập" />
+                            <>
+                                <h5 className="welcome-text">
+                                    Chào Mừng {firstName} {lastName}
+                                </h5>
+                                <FiLogOut onClick={handleLogout} className="icon logout-icon" title="Đăng xuất" />
+                            </>
+                        )}
+                    </div>
+                </header>
+
+                <div className="tabs">
+                    <div
+                        className={`tabs-content ${activeTab === 'home' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('home')}
+                    >
+                        Trang Chính
+                    </div>
+                    <div
+                        className={`tabs-content ${activeTab === 'settings' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('settings')}
+                    >
+                        Cấu Hình
+                    </div>
+                    <div
+                        className={`tabs-content ${activeTab === 'import' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('import')}
+                    >
+                        Import
+                    </div>
+                    <div
+                        className={`tabs-content ${activeTab === 'help' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('help')}
+                    >
+                        Trợ Giúp
+                    </div>
+                </div>
+
+                <div className="home-content">
+                    <div className="card-grid">
+                        {activeTab === 'home' && (
+                            <>
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCreateLiftingTable')}
+                                        >
+                                            <GoPlusCircle className="icon-plus" size={30} />
+                                            <p className="text-function"> Tạo bản nâng</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => {
+                                                setShowConfirm(true);
+                                            }}
+                                        >
+                                            <IoMdCloseCircle className="icon-close" size={30} />
+                                            <p className="text-function"> Xóa bản nâng</p>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <LuClipboardEdit
+                                                size={30}
+                                                onClick={() => handleToggleModal('isShowModalUpdateLiftingTable')}
+                                            />
+                                            <p className="text-function"> Sửa bản nâng</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalSynchronousLeb')}
+                                        >
+                                            <IoReloadOutline className="icon-plus" size={30} />
+                                            <p className="text-function"> Đồng bộ bảng leb</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Bảng nâng</p>
                                 </div>
-                            ),
-                    )}
 
-                    <header className="header">
-                        <img src={logo} alt="Logo" className="header-logo" />
-                        <div className="header-icons">
-                            {!isLoggedIn ? (
-                                <FaUser onClick={handleLoginClick} className="icon login-icon" title="Đăng nhập" />
-                            ) : (
-                                <>
-                                    <h5 className="welcome-text">
-                                        Chào Mừng {firstName} {lastName}
-                                    </h5>
-                                    <FiLogOut onClick={handleLogout} className="icon logout-icon" title="Đăng xuất" />
-                                </>
-                            )}
-                        </div>
-                    </header>
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div className="cart-center">
+                                            <TiSpanner className="icon-plus" size={30} />
+                                            <p className="text-function"> Tiếp nhận xe</p>
+                                        </div>
 
-                    <div className="tabs">
-                        <div
-                            className={`tabs-content ${activeTab === 'home' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('home')}
-                        >
-                            Trang Chính
-                        </div>
-                        <div
-                            className={`tabs-content ${activeTab === 'settings' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('settings')}
-                        >
-                            Cấu Hình
-                        </div>
-                        <div
-                            className={`tabs-content ${activeTab === 'import' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('import')}
-                        >
-                            Import
-                        </div>
-                        <div
-                            className={`tabs-content ${activeTab === 'help' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('help')}
-                        >
-                            Trợ Giúp
-                        </div>
+                                        <div className="cart-center">
+                                            <FaArrowAltCircleDown
+                                                className="icon-green"
+                                                size={30}
+                                                onClick={() => {
+                                                    if (selectedIndex !== null) {
+                                                        // Kiểm tra chỉ số đã được chọn chưa
+                                                        handleToggleModal('isShowModalDecreaseTime');
+                                                    }
+                                                }}
+                                            />
+                                            <p className="text-function">Giảm thời gian</p>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <FaArrowAltCircleUp
+                                                className="icon-green"
+                                                size={30}
+                                                onClick={() => handleToggleModal('isShowModalIncreaseTime')}
+                                            />
+                                            <p className="text-function">Tăng thời gian</p>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <LuBookOpenCheck size={30} />
+                                            <p className="text-function"> Trả xe</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin sửa chữa</p>
+                                </div>
+
+                                <div className="card ">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCreateCustomer')}
+                                        >
+                                            <RiUserShared2Fill size={30} />
+                                            <p className="text-function"> Tiếp nhận khách</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalSynchronousCustomer')}
+                                        >
+                                            <IoReloadOutline className="icon-plus" size={30} />
+                                            <span className="text-function">Đồng bộ thông </span>
+                                            <span className="text-function">tin khách hàng</span>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <HiSpeakerphone className="icon-plus" size={30} />
+                                            <p className="text-function">Thông báo</p>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <MdClose className="icon-close" size={30} />
+                                            <p className="text-function"> Tắt thông báo</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin khách hàng</p>
+                                </div>
+
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div className="cart-center">
+                                            <GrPrint size={30} />
+                                            <p className="text-function">Xuất báo cáo</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Báo cáo</p>
+                                </div>
+
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCategory')}
+                                        >
+                                            <SlClock size={30} />
+                                            <p className="text-function"> Danh mục thời</p>
+                                            <p className="text-function"> gian sửa chửa</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalTechnical')}
+                                        >
+                                            <FaAddressCard size={30} />
+                                            <p className="text-function">Danh sách kĩ </p>
+                                            <p className="text-function">thuật viên</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Khai báo</p>
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'settings' && (
+                            <>
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalConfigSystem')}
+                                        >
+                                            <IoSettingsOutline size={30} />
+                                            <p className="text-function"> Cấu hình thông</p>
+                                            <p className="text-function"> số hệ thống</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalLCD')}
+                                        >
+                                            <FaFlipboard size={30} />
+                                            <p className="text-function"> Cấu hình thông</p>
+                                            <p className="text-function"> số thể hiện LCD</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin</p>
+                                </div>
+
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCreateDatabase')}
+                                        >
+                                            <TbDatabasePlus size={30} />
+                                            <p className="text-function"> Tạo cấu trúc</p>
+                                            <p className="text-function"> dữ liệu</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalUpdateDatabase')}
+                                        >
+                                            <LuDatabase size={30} />
+                                            <p className="text-function"> Cài đặt cơ</p>
+                                            <p className="text-function"> sở dữ liệu</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Database</p>
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'import' && (
+                            <>
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalImport')}
+                                        >
+                                            <IoDocuments size={30} />
+                                            <p className="text-function"> Import danh mục</p>
+                                            <p className="text-function"> thời gian sửa chửa</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Import</p>
+                                </div>
+                            </>
+                        )}
+
+                        {activeTab === 'help' && (
+                            <>
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <a target="_blank" href="https://iky.vn/" style={{ textDecoration: 'none' }}>
+                                            <div className="cart-center">
+                                                <FaEarthAmericas size={30} />
+                                                <p className="text-function"> Trang chủ</p>
+                                            </div>
+                                        </a>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalInfomation')}
+                                        >
+                                            <HiQuestionMarkCircle size={30} />
+                                            <p className="text-function">Phiên bản</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin</p>
+                                </div>
+                            </>
+                        )}
                     </div>
 
-                    <div className="home-content">
-                        <div className="card-grid">
-                            {activeTab === 'home' && (
-                                <>
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalCreateLiftingTable')}
-                                            >
-                                                <GoPlusCircle className="icon-plus" size={30} />
-                                                <p className="text-function"> Tạo bản nâng</p>
-                                            </div>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => {
-                                                    setShowConfirm(true);
-                                                }}
-                                            >
-                                                <IoMdCloseCircle className="icon-close" size={30} />
-                                                <p className="text-function"> Xóa bản nâng</p>
-                                            </div>
-
-                                            <div className="cart-center">
-                                                <LuClipboardEdit
-                                                    size={30}
-                                                    onClick={() => handleToggleModal('isShowModalUpdateLiftingTable')}
-                                                />
-                                                <p className="text-function"> Sửa bản nâng</p>
-                                            </div>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalSynchronousLeb')}
-                                            >
-                                                <IoReloadOutline className="icon-plus" size={30} />
-                                                <p className="text-function"> Đồng bộ bảng leb</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Bảng nâng</p>
-                                    </div>
-
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div className="cart-center">
-                                                <TiSpanner className="icon-plus" size={30} />
-                                                <p className="text-function"> Tiếp nhận xe</p>
-                                            </div>
-
-                                            <div className="cart-center">
-                                                <FaArrowAltCircleDown
-                                                    className="icon-green"
-                                                    size={30}
-                                                    onClick={() => {
-                                                        if (selectedIndex !== null) {
-                                                            // Kiểm tra chỉ số đã được chọn chưa
-                                                            handleToggleModal('isShowModalDecreaseTime');
-                                                        }
-                                                    }}
-                                                />
-                                                <p className="text-function">Giảm thời gian</p>
-                                            </div>
-
-                                            <div className="cart-center">
-                                                <FaArrowAltCircleUp
-                                                    className="icon-green"
-                                                    size={30}
-                                                    onClick={() => handleToggleModal('isShowModalIncreaseTime')}
-                                                />
-                                                <p className="text-function">Tăng thời gian</p>
-                                            </div>
-
-                                            <div className="cart-center">
-                                                <LuBookOpenCheck size={30} />
-                                                <p className="text-function"> Trả xe</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Thông tin sửa chữa</p>
-                                    </div>
-
-                                    <div className="card ">
-                                        <div className="cart-top">
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalCreateCustomer')}
-                                            >
-                                                <RiUserShared2Fill size={30} />
-                                                <p className="text-function"> Tiếp nhận khách</p>
-                                            </div>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalSynchronousCustomer')}
-                                            >
-                                                <IoReloadOutline className="icon-plus" size={30} />
-                                                <span className="text-function">Đồng bộ thông </span>
-                                                <span className="text-function">tin khách hàng</span>
-                                            </div>
-
-                                            <div className="cart-center">
-                                                <HiSpeakerphone className="icon-plus" size={30} />
-                                                <p className="text-function">Thông báo</p>
-                                            </div>
-
-                                            <div className="cart-center">
-                                                <MdClose className="icon-close" size={30} />
-                                                <p className="text-function"> Tắt thông báo</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Thông tin khách hàng</p>
-                                    </div>
-
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div className="cart-center">
-                                                <GrPrint size={30} />
-                                                <p className="text-function">Xuất báo cáo</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Báo cáo</p>
-                                    </div>
-
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalCategory')}
-                                            >
-                                                <SlClock size={30} />
-                                                <p className="text-function"> Danh mục thời</p>
-                                                <p className="text-function"> gian sửa chửa</p>
-                                            </div>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalTechnical')}
-                                            >
-                                                <FaAddressCard size={30} />
-                                                <p className="text-function">Danh sách kĩ </p>
-                                                <p className="text-function">thuật viên</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Khai báo</p>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'settings' && (
-                                <>
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalConfigSystem')}
-                                            >
-                                                <IoSettingsOutline size={30} />
-                                                <p className="text-function"> Cấu hình thông</p>
-                                                <p className="text-function"> số hệ thống</p>
-                                            </div>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalLCD')}
-                                            >
-                                                <FaFlipboard size={30} />
-                                                <p className="text-function"> Cấu hình thông</p>
-                                                <p className="text-function"> số thể hiện LCD</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Thông tin</p>
-                                    </div>
-
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalCreateDatabase')}
-                                            >
-                                                <TbDatabasePlus size={30} />
-                                                <p className="text-function"> Tạo cấu trúc</p>
-                                                <p className="text-function"> dữ liệu</p>
-                                            </div>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalUpdateDatabase')}
-                                            >
-                                                <LuDatabase size={30} />
-                                                <p className="text-function"> Cài đặt cơ</p>
-                                                <p className="text-function"> sở dữ liệu</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Database</p>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'import' && (
-                                <>
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalImport')}
-                                            >
-                                                <IoDocuments size={30} />
-                                                <p className="text-function"> Import danh mục</p>
-                                                <p className="text-function"> thời gian sửa chửa</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Import</p>
-                                    </div>
-                                </>
-                            )}
-
-                            {activeTab === 'help' && (
-                                <>
-                                    <div className="card">
-                                        <div className="cart-top">
-                                            <a
-                                                target="_blank"
-                                                href="https://iky.vn/"
-                                                style={{ textDecoration: 'none' }}
-                                            >
-                                                <div className="cart-center">
-                                                    <FaEarthAmericas size={30} />
-                                                    <p className="text-function"> Trang chủ</p>
-                                                </div>
-                                            </a>
-
-                                            <div
-                                                className="cart-center"
-                                                onClick={() => handleToggleModal('isShowModalInfomation')}
-                                            >
-                                                <HiQuestionMarkCircle size={30} />
-                                                <p className="text-function">Phiên bản</p>
-                                            </div>
-                                        </div>
-                                        <p className="function">Thông tin</p>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div className="active-tables">
-                            <div className="background-container">
-                                <div className="content-wrapper">
-                                    <div className="border-table">
-                                        <p className="data-table">Bảng dữ liệu</p>
-                                        <div className="active-table lifting-table">
-                                            <p className="active-table-title">DANH SÁCH BÀN NÂNG</p>
-                                            <table>
-                                                <thead style={{ marginLeft: '100px' }}>
+                    <div className="active-tables">
+                        <div className="background-container">
+                            <div className="content-wrapper">
+                                <div style={{ border: '1px solid #ddd', padding: '16px' }}>
+                                    <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Bảng dữ liệu</p>
+                                    <div style={{ border: '1px solid #ccc', padding: '16px' }}>
+                                        <p style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+                                            DANH SÁCH BÀN NÂNG
+                                        </p>
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                <thead>
                                                     <tr>
-                                                        <th>Bàn nâng</th>
-                                                        <th>Kĩ Thuật Viên</th>
-                                                        <th>Nội dung thông báo</th>
-                                                        <th>TRẠNG THÁI</th>
-                                                        <th>Số thẻ</th>
-                                                        <th>Khách Hàng</th>
-                                                        <th>Biển số xe</th>
-                                                        <th>TG sửa chửa</th>
-                                                        <th>TG còn lại</th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            Bàn nâng
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            Kĩ Thuật Viên
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            Nội dung thông báo
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            TRẠNG THÁI
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            Số thẻ
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            Khách Hàng
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            Biển số xe
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            TG sửa chữa
+                                                        </th>
+                                                        <th
+                                                            style={{
+                                                                padding: '8px 16px',
+                                                                textAlign: 'left',
+                                                                whiteSpace: 'nowrap',
+                                                            }}
+                                                        >
+                                                            TG còn lại
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {cars?.map((car) => (
                                                         <tr
                                                             key={car._id}
-                                                            onClick={() => handleRowClick(car._id)} // Sử dụng handleRowClick
-                                                            className={
-                                                                selectedIndex === cars.indexOf(car) ? 'active-row' : ''
-                                                            }
+                                                            onClick={() => handleRowClick(car._id)}
+                                                            style={{
+                                                                backgroundColor:
+                                                                    selectedIndex === cars.indexOf(car)
+                                                                        ? '#f0f0f0'
+                                                                        : 'transparent',
+                                                                cursor: 'pointer',
+                                                            }}
                                                         >
-                                                            <td>{isLoggedIn && car ? car.number : ''}</td>
-                                                            <td>
+                                                            <td style={{ padding: '8px 16px' }}>
+                                                                {isLoggedIn && car ? car.number : ''}
+                                                            </td>
+                                                            <td style={{ padding: '8px 16px' }}>
                                                                 {isLoggedIn && car ? car?.technician?.fullName : ''}
                                                             </td>
-                                                            <td>{isLoggedIn && car ? car.description : ''}</td>
-                                                            <td>{isLoggedIn && car ? 'đã xong' : ''}</td>
-                                                            <td></td>
-                                                            <td></td>
-                                                            <td></td>
-                                                            <td></td>
-                                                            <td></td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    <div className="row-tables">
-                                        <div className="active-table">
-                                            <p className="active-table-title">DANH SÁCH KHÁCH HÀNG</p>
-                                            <table>
-                                                <thead>
-                                                    <tr>
-                                                        <th>Số thẻ</th>
-                                                        <th>Họ tên</th>
-                                                        <th>BIỂN SỐ XE</th>
-                                                        <th>THỜI GIAN</th>
-                                                        <th>Nhận</th>
-                                                        <th>Trả</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {receivedCustomers?.map((customer, index) => (
-                                                        <tr
-                                                            key={index}
-                                                            onClick={() => setSelectedCustomerRow(index)}
-                                                            className={
-                                                                selectedCustomerRow === index ? 'active-row' : ''
-                                                            }
-                                                        >
-                                                            <td>{customer?.ID || customer?.id}</td>
-                                                            <td>{customer?.customer || customer?.name}</td>
-                                                            <td>{customer?.licensePlate}</td>
-                                                            <td>{customer?.time}</td>
-                                                            <td
-                                                                className="status-cell"
-                                                                onClick={() =>
-                                                                    handleToggleModal('isShowModalReceivingCustomer')
-                                                                }
-                                                            >
-                                                                <span className="status status-receive">✓</span>
+                                                            <td style={{ padding: '8px 16px' }}>
+                                                                {isLoggedIn && car ? car.description : ''}
                                                             </td>
-                                                            <td className="status-cell">
-                                                                <span
-                                                                    className="status status-cancel"
-                                                                    onClick={() => handleCustomerReturn(index)}
-                                                                >
-                                                                    X
-                                                                </span>
+                                                            <td style={{ padding: '8px 16px' }}>
+                                                                {isLoggedIn && car ? 'đã xong' : ''}
                                                             </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        <div className="active-table">
-                                            <p className="active-table-title">DANH SÁCH XE CHỜ LẤY</p>
-                                            <table>
-                                                <thead>
-                                                    <tr>
-                                                        <th>Số thẻ</th>
-                                                        <th>Họ tên</th>
-                                                        <th>Biển Số Xe</th>
-                                                        <th>Thời gian</th>
-                                                        <th>KH đã nhận </th>
-                                                        <th>Gọi</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {returnCar?.map((items, index) => (
-                                                        <tr
-                                                            key={index}
-                                                            onClick={() => setSelectedReturnCarRow(index)}
-                                                            className={
-                                                                selectedReturnCarRow === index ? 'active-row' : ''
-                                                            }
-                                                        >
-                                                            <td>{items?.ID}</td>
-                                                            <td>{items?.customer}</td>
-                                                            <td>{items?.licensePlate}</td>
-                                                            <td>{items?.time}</td>
-
-                                                            <td className="status-cell">
-                                                                <span className="status status-receive">✓</span>
-                                                            </td>
-
-                                                            <td className="status-cell">
-                                                                <span className="status status-call">📢</span>
-                                                            </td>
+                                                            <td style={{ padding: '8px 16px' }}></td>
+                                                            <td style={{ padding: '8px 16px' }}></td>
+                                                            <td style={{ padding: '8px 16px' }}></td>
+                                                            <td style={{ padding: '8px 16px' }}></td>
+                                                            <td style={{ padding: '8px 16px' }}></td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -800,13 +957,203 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                <div className="row-tables">
+                                    <div className="active-table" style={{ overflowX: 'auto' }}>
+                                        <p className="active-table-title">DANH SÁCH KHÁCH HÀNG</p>
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Số thẻ</th>
+                                                    <th>Họ tên</th>
+                                                    <th>BIỂN SỐ XE</th>
+                                                    <th>THỜI GIAN</th>
+                                                    <th>Nhận</th>
+                                                    <th>Trả</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {customers
+                                                    ?.slice()
+                                                    .filter((customer) => {
+                                                        const createdAt = new Date(customer.createdAt);
+                                                        const today = new Date();
+                                                        return (
+                                                            createdAt.getDate() === today.getDate() &&
+                                                            createdAt.getMonth() === today.getMonth() &&
+                                                            createdAt.getFullYear() === today.getFullYear()
+                                                        );
+                                                    })
+                                                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                                                    .map((customer, index) => (
+                                                        <tr
+                                                            key={customer._id} // Sử dụng _id làm key
+                                                            onClick={() => handleRowClickCustomer(customer)}
+                                                            className={
+                                                                selectedCustomerRow === index ? 'active-row' : ''
+                                                            }
+                                                        >
+                                                            <td>{customer?.cardNumber}</td>
+                                                            <td>{customer?.fullName}</td>
+                                                            <td>{customer?.licensePlate}</td>
+                                                            <td>{customer?.repairStartTime}</td>
+                                                            <td
+                                                                className="status-cell"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleToggleModal('isShowModalReceivingCustomer');
+                                                                    setSelectedCustomerRow(index);
+                                                                    setSelectedCustomer(customer);
+                                                                }}
+                                                            >
+                                                                <span className="status status-receive">✓</span>
+                                                            </td>
+                                                            <td
+                                                                className="status-cell"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleCustomerReturn(customer);
+                                                                }}
+                                                            >
+                                                                <span className="status status-cancel">X</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* api thực tế */}
+                                    {/* <div className="active-table">
+                                        <h4 className="active-table-title">DANH SÁCH DỊCH VỤ</h4>
+                                        <Accordion>
+                                            {serviceWating.map((service, index) => (
+                                                <Card key={index} className="mb-2">
+                                                    <Card.Header>
+                                                        <div className="d-flex justify-content-between align-items-center">
+                                                            <span className="service-name">
+                                                                {service.services_name}
+                                                            </span>
+                                                            <Button
+                                                                variant="link"
+                                                                onClick={() => toggleService(index)}
+                                                                aria-expanded={expandedService === index}
+                                                            >
+                                                                {expandedService === index ? (
+                                                                    <FaCaretUp />
+                                                                ) : (
+                                                                    <FaCaretDown />
+                                                                )}
+                                                            </Button>
+                                                        </div>
+                                                    </Card.Header>
+                                                    <Accordion.Collapse
+                                                        eventKey={index.toString()}
+                                                        in={expandedService === index}
+                                                    >
+                                                        <Card.Body>
+                                                            {service.queues.length > 0 ? (
+                                                                <Table bordered hover responsive>
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Số thẻ</th>
+                                                                            <th>Họ tên</th>
+                                                                            <th>BIỂN SỐ XE</th>
+
+                                                                            <th>THỜI GIAN</th>
+                                                                            <th>Nhận</th>
+                                                                            <th>Trả</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {service.queues.map((queue, queueIndex) => (
+                                                                            <tr key={queueIndex}>
+                                                                                <td>{queue.serial_number}</td>
+                                                                                <td>
+                                                                                    {service.customer ||
+                                                                                        service.name ||
+                                                                                        'N/A'}
+                                                                                </td>
+                                                                                <td>{service.licensePlate || 'N/A'}</td>
+
+                                                                                <td>
+                                                                                    {new Date(
+                                                                                        queue.created_at,
+                                                                                    ).toLocaleString()}
+                                                                                </td>
+                                                                                <td className="status-cell">
+                                                                                    <span
+                                                                                        className="status status-receive"
+                                                                                        onClick={() =>
+                                                                                            handleToggleModal(
+                                                                                                'isShowModalReceivingCustomer',
+                                                                                            )
+                                                                                        }
+                                                                                    >
+                                                                                        ✓
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="status-cell">
+                                                                                    <span className="status status-cancel">
+                                                                                        X
+                                                                                    </span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </Table>
+                                                            ) : (
+                                                                <p>Không có hàng đợi nào cho dịch vụ này</p>
+                                                            )}
+                                                        </Card.Body>
+                                                    </Accordion.Collapse>
+                                                </Card>
+                                            ))}
+                                        </Accordion>
+                                    </div> */}
+                                    <div className="active-table" style={{ overflowX: 'auto' }}>
+                                        <p className="active-table-title">DANH SÁCH XE CHỜ LẤY</p>
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Số thẻ</th>
+                                                    <th>Họ tên</th>
+                                                    <th>Biển Số Xe</th>
+                                                    <th>Thời gian</th>
+                                                    <th>KH đã nhận </th>
+                                                    <th>Gọi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {returnCar?.map((items, index) => (
+                                                    <tr
+                                                        key={index}
+                                                        onClick={() => setSelectedReturnCarRow(index)}
+                                                        className={selectedReturnCarRow === index ? 'active-row' : ''}
+                                                    >
+                                                        <td>{items?.ID}</td>
+                                                        <td>{items?.customer}</td>
+                                                        <td>{items?.licensePlate}</td>
+                                                        <td>{items?.time}</td>
+
+                                                        <td className="status-cell">
+                                                            <span className="status status-receive">✓</span>
+                                                        </td>
+
+                                                        <td className="status-cell">
+                                                            <span className="status status-call">📢</span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            ) : (
-                <div></div>
-            )}
+            </div>
 
             <Modal show={showConfirm} onHide={() => setShowConfirm(false)}>
                 <Modal.Header closeButton>

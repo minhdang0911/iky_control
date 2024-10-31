@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import Form from 'react-bootstrap/Form';
@@ -17,7 +17,7 @@ const ModalCategory = ({ isShowModal, onClose, token }) => {
     const [searchAbbreviation, setSearchAbbreviation] = useState('');
     const [filteredCategories, setFilteredCategories] = useState([]);
 
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async () => {
         try {
             const response = await apiGetCategories();
             setDataCategory(response.categories);
@@ -25,11 +25,11 @@ const ModalCategory = ({ isShowModal, onClose, token }) => {
         } catch (error) {
             console.error('Không thể lấy danh mục:', error);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchCategories();
-    }, []);
+    }, [fetchCategories]);
 
     useEffect(() => {
         setFilteredCategories(dataCategory); // Đồng bộ hóa filteredCategories khi dataCategory thay đổi
@@ -205,39 +205,41 @@ const ModalCategory = ({ isShowModal, onClose, token }) => {
                                         </Button>
                                     </Form.Group>
                                 </Form>
-                                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                                    <Table striped bordered hover responsive>
-                                        <thead>
-                                            <tr>
-                                                <th>Tên viết tắt</th>
-                                                <th>Tên</th>
-                                                <th>Thời gian (phút)</th>
-                                                <th>Xóa</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredCategories.slice(0, 8).map((item, index) => (
-                                                <tr key={item._id} onClick={() => handleRowClick(index)}>
-                                                    <td>{item.abbreviation}</td>
-                                                    <td>{item.name}</td>
-                                                    <td>{item.time || '-'}</td>
-                                                    <td>
-                                                        <Button
-                                                            variant="danger"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                setSelectedIndex(index);
-                                                                setShowConfirm(true);
-                                                            }}
-                                                            className="btn-delete-category"
-                                                        >
-                                                            <FaTrash />
-                                                        </Button>
-                                                    </td>
+                                <div className="table-category-responsive">
+                                    <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                        <Table striped bordered hover responsive>
+                                            <thead>
+                                                <tr>
+                                                    <th>Tên viết tắt</th>
+                                                    <th>Tên</th>
+                                                    <th>Thời gian (phút)</th>
+                                                    <th>Xóa</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </Table>
+                                            </thead>
+                                            <tbody>
+                                                {filteredCategories.slice(0, 500).map((item, index) => (
+                                                    <tr key={item._id} onClick={() => handleRowClick(index)}>
+                                                        <td>{item.abbreviation}</td>
+                                                        <td>{item.name}</td>
+                                                        <td>{item.time || '-'}</td>
+                                                        <td>
+                                                            <Button
+                                                                variant="danger"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setSelectedIndex(index);
+                                                                    setShowConfirm(true);
+                                                                }}
+                                                                className="btn-delete-category"
+                                                            >
+                                                                <FaTrash />
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </Table>
+                                    </div>
                                 </div>
                             </Col>
                         </Row>

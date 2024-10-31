@@ -296,6 +296,8 @@ import './login.scss';
 import { FaEyeSlash } from 'react-icons/fa';
 import { IoEyeSharp } from 'react-icons/io5';
 import { Puff } from 'react-loader-spinner'; // Import spinner từ react-loader-spinner
+import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 const AuthForm = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -322,7 +324,9 @@ const AuthForm = () => {
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [isRegister, setIsRegister] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState(''); // Lưu email đã đăng ký
-    const [registeredPassword, setRegisteredPassword] = useState(''); // Lưu password đã đăng ký
+    const [registeredPassword, setRegisteredPassword] = useState('');
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchStores = async () => {
@@ -389,7 +393,7 @@ const AuthForm = () => {
                 } else if ((response.status = '201' && !isRegister)) {
                     localStorage.setItem('token', response.token);
                     toast.success('Đăng nhập thành công!');
-                    window.location.href = '/UI-STAFF';
+                    navigate('/control');
                 } else if (response.status === 400) {
                     toast.error(response.mes || 'Email đã được đăng ký.');
                 } else if (response.status === 401) {
@@ -778,5 +782,99 @@ const AuthForm = () => {
         </div>
     );
 };
-
 export default AuthForm;
+
+//api thuc te
+// import React, { useState } from 'react';
+// import { toast } from 'react-toastify';
+// import { Puff } from 'react-loader-spinner';
+// import './login.scss';
+// import { IoEyeSharp } from 'react-icons/io5';
+// import { FaEyeSlash } from 'react-icons/fa';
+
+// const AuthForm = () => {
+//     const [isLogin, setIsLogin] = useState(true);
+//     const [username, setUsername] = useState(''); // Thay đổi tên biến từ email thành username
+//     const [password, setPassword] = useState('');
+//     const [loading, setLoading] = useState(false);
+//     const [hidePassword, setHidePassword] = useState(true);
+
+//     const handleAuthSubmit = async (e) => {
+//         e.preventDefault();
+
+//         if (!username || !password) {
+//             toast.error('Tên người dùng và mật khẩu không được để trống.');
+//             return;
+//         }
+
+//         setLoading(true);
+
+//         try {
+//             const response = await fetch(
+//                 `/api/users/token?grant_type=password&username=${username}&password=${password}`,
+//                 {
+//                     method: 'GET',
+//                     headers: {
+//                         'Content-Type': 'application/json',
+//                     },
+//                 },
+//             );
+
+//             console.log('Response status:', response);
+
+//             if (!response.ok) {
+//                 const errorMsg = await response.text();
+//                 console.error('Error response:', errorMsg);
+//                 toast.error('Có lỗi xảy ra, vui lòng thử lại.');
+//                 return;
+//             }
+
+//             const data = await response.json();
+//             console.log('Response data:', data); // Kiểm tra dữ liệu phản hồi
+
+//             // Kiểm tra kết quả và lưu accessToken
+//             if (data.result === 1 && data.msg) {
+//                 localStorage.setItem('Access token', data.msg.accessToken); // Lưu accessToken vào localStorage
+//                 toast.success('Đăng nhập thành công!');
+//                 window.location.href = '/control'; // Chuyển hướng sau khi đăng nhập
+//             } else {
+//                 toast.error(data.msg || 'Đăng nhập không thành công.');
+//             }
+//         } catch (error) {
+//             toast.error('Có lỗi xảy ra, vui lòng thử lại.');
+//             console.error('Error during authentication:', error);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
+//     return (
+//         <div className="auth-form-container">
+//             <form onSubmit={handleAuthSubmit} className="auth-form">
+//                 <h2>Đăng Nhập</h2>
+//                 <div className="form-group">
+//                     <label>Tên người dùng</label>
+//                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+//                 </div>
+//                 <div className="form-group">
+//                     <label>Mật khẩu</label>
+//                     <div className="password-container">
+//                         <input
+//                             type={hidePassword ? 'password' : 'text'}
+//                             value={password}
+//                             onChange={(e) => setPassword(e.target.value)}
+//                         />
+//                         <span onClick={() => setHidePassword(!hidePassword)}>
+//                             {hidePassword ? <IoEyeSharp /> : <FaEyeSlash />}
+//                         </span>
+//                     </div>
+//                 </div>
+//                 <button type="submit" className="auth-button" disabled={loading}>
+//                     {loading ? <Puff color="#00BFFF" height={20} width={20} /> : 'Đăng Nhập'}
+//                 </button>
+//             </form>
+//         </div>
+//     );
+// };
+
+// export default AuthForm;

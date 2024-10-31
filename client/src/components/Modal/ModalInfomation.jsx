@@ -14,7 +14,7 @@ const ModalInformation = ({ isShowModal, onClose }) => {
             <Modal.Body>
                 <div className="d-flex">
                     <div className="flex-shrink-0" style={{ width: '30%' }}>
-                        <img src={logo} alt="IKY Logo" style={{ width: '100%' }} />
+                        <img src={logo} alt="IKY Logo" style={{ width: '100%' }} loading="lazy" />
                     </div>
 
                     <div className="flex-grow-1 ps-4">

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Modal from 'react-bootstrap/Modal';
 import Form from 'react-bootstrap/Form';
+import { Button } from 'antd';
 import { apiUpdateLiftTable } from '../../api/lifttable';
 import { apiGetTechnicalByStore } from '../../api/store';
 import { toast } from 'react-toastify';
 
-const ModalUpdateLiftingTable = ({ isShowModal, onClose, selectedCar, onUpdateCars, dataUser, cars }) => {
+const ModalUpdateLiftingTable = ({ isShowModal, onClose, selectedCar, onUpdateCars, dataUser }) => {
     const [liftingTable, setLiftingTable] = useState('');
     const [technician, setTechnician] = useState('');
     const [description, setDescription] = useState('');
@@ -13,68 +14,65 @@ const ModalUpdateLiftingTable = ({ isShowModal, onClose, selectedCar, onUpdateCa
 
     const { storeId } = dataUser;
 
-    // Gọi API để lấy danh sách kỹ thuật viên theo cửa hàng
-    useEffect(() => {
-        const fetchTechnicalByStore = async () => {
-            try {
-                const response = await apiGetTechnicalByStore(storeId);
-                if (response.data) {
-                    setDataTech(response.data);
-                }
-            } catch (error) {
-                console.error('Error fetching technicians:', error);
-            }
-        };
+    // Fetch technicians only when storeId changes
+    const fetchTechnicalByStore = useCallback(async () => {
+        if (!storeId) return;
 
-        fetchTechnicalByStore();
+        try {
+            const response = await apiGetTechnicalByStore(storeId);
+            if (response.data) {
+                setDataTech(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching technicians:', error);
+        }
     }, [storeId]);
 
-    console.log('selectedCar', selectedCar);
+    useEffect(() => {
+        fetchTechnicalByStore();
+    }, [fetchTechnicalByStore]);
 
     useEffect(() => {
         if (selectedCar) {
-            setLiftingTable(selectedCar?.number || '');
-            setTechnician(selectedCar?.technician._id || '');
-            setDescription(selectedCar?.description || '');
+            setLiftingTable(selectedCar.number || '');
+            setTechnician(selectedCar.technician?._id || '');
+            setDescription(selectedCar.description || '');
         }
     }, [selectedCar]);
 
-    // Xử lý cập nhật bàn nâng
     const handleUpdateModal = async () => {
         const updatedData = {
             number: liftingTable,
             technician,
-            store: storeId, // Đảm bảo storeId có giá trị
+            store: storeId,
             description,
         };
 
         try {
             const response = await apiUpdateLiftTable(selectedCar?._id, updatedData);
 
-            // Kiểm tra nếu mã trạng thái là 400
             if (response.status === 400) {
                 toast.error('Số bàn nâng đã tồn tại');
-                return; // Thoát ra nếu có lỗi
+                return;
             }
 
-            // Kiểm tra thành công
             if (response.success) {
                 const updatedCar = {
                     ...selectedCar,
-                    number: response?.data?.number,
+                    number: response.data?.number,
                     technician: {
-                        _id: response?.data?.technician?._id, // Giữ _id
-                        fullName: response?.data?.technician?.fullName, // Giữ fullName để hiển thị
+                        _id: response.data?.technician?._id,
+                        fullName: response.data?.technician?.fullName,
                     },
-                    description: response?.data?.description,
+                    description: response.data?.description,
                     store: storeId,
                 };
-                onUpdateCars(updatedCar); // Gọi hàm updateCars với dữ liệu mới
-                onClose(); // Đóng modal
-                toast.success('Cập nhật thành công'); // Hiển thị toast thông báo
+                onUpdateCars(updatedCar);
+                onClose();
+                toast.success('Cập nhật thành công');
             }
         } catch (error) {
-            console.error('Error updating lift table: ', error);
+            console.error('Error updating lift table:', error);
         }
     };
 
@@ -102,18 +100,14 @@ const ModalUpdateLiftingTable = ({ isShowModal, onClose, selectedCar, onUpdateCa
                             value={technician}
                             onChange={(e) => setTechnician(e.target.value)}
                         >
-                            {/* Hiển thị kỹ thuật viên đã chọn */}
-                            {selectedCar && selectedCar?.technician && (
-                                <option value={selectedCar?.technician?._id}>
-                                    {selectedCar?.technician?.fullName}
-                                </option>
+                            {selectedCar?.technician && (
+                                <option value={selectedCar.technician._id}>{selectedCar.technician.fullName}</option>
                             )}
-                            {/* Hiển thị các kỹ thuật viên từ dataTech, loại trừ kỹ thuật viên đã chọn */}
                             {dataTech
-                                .filter((tech) => tech?._id !== selectedCar?.technician?._id)
+                                .filter((tech) => tech._id !== selectedCar?.technician?._id)
                                 .map((tech) => (
-                                    <option key={tech?._id} value={tech?._id}>
-                                        {tech?.fullName}
+                                    <option key={tech._id} value={tech._id}>
+                                        {tech.fullName}
                                     </option>
                                 ))}
                         </Form.Select>
@@ -131,7 +125,9 @@ const ModalUpdateLiftingTable = ({ isShowModal, onClose, selectedCar, onUpdateCa
             </Modal.Body>
 
             <Modal.Footer>
-                <button onClick={handleUpdateModal}>Cập nhật</button>
+                <Button type="primary" onClick={handleUpdateModal}>
+                    Cập nhật
+                </Button>
             </Modal.Footer>
         </Modal>
     );

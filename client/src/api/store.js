@@ -18,7 +18,7 @@ export const apiCreateStore = (payload) => {
     return axios({
         url: '/store/create',
         method: 'post',
-        data: payload, // Truyền payload vào data
+        data: payload,
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });
 };
@@ -28,7 +28,6 @@ export const apiUpdateStore = (id, payload) => {
         url: `/store/update/${id}`,
         method: 'put',
         data: payload,
-        // headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     });
 };
 
@@ -47,4 +46,16 @@ export const apiDeleteStore = (id) => {
 // API
 export const apiGetTechnicalByStore = (storeId) => {
     return axios.get(`/technical/technicians?store=${storeId}`);
+};
+
+export const apiGetStoreStatistics = async (city = '', district = '') => {
+    try {
+        const response = await axios.get('/store/statistics', {
+            params: { city, district },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch store statistics:', error);
+        throw error;
+    }
 };

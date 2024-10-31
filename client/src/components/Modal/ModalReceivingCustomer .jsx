@@ -5,22 +5,39 @@ import Form from 'react-bootstrap/Form';
 import Table from 'react-bootstrap/Table';
 import { FaCheck, FaTimes, FaChevronDown, FaChevronUp, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { apiGetCategories } from '../../api/category';
+import { apiGetLiftTable } from '../../api/lifttable';
 
-const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers }) => {
+const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers, dataUser, selectedCustomer }) => {
     const [isOpen, setIsOpen] = useState(true);
     const [customer, setCustomer] = useState('');
     const [ID, setId] = useState('');
     const [licensePlate, setLicensePlate] = useState('');
-    const [time, setTime] = useState('');
+    const [time, setTime] = useState(0); // Tổng thời gian tính bằng phút
+    const [hours, setHours] = useState(0);
+    const [minutes, setMinutes] = useState(0);
     const [customers, setCustomers] = useState([]);
     const [showConfirm, setShowConfirm] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(null);
+    const [category, setCategory] = useState([]);
+    const [liftTable, setLiftTable] = useState([]);
+    const [services, setServices] = useState([]);
+    const [selectedService, setSelectedService] = useState(''); // Trạng thái dịch vụ được chọn
 
-    const [data, setData] = useState([
-        { shortName: 'DVS1', serviceName: 'Dịch vụ 1', time: '30 phút' },
-        { shortName: 'DVS2', serviceName: 'Dịch vụ 2', time: '45 phút' },
-        { shortName: 'DVS3', serviceName: 'Dịch vụ 3', time: '60 phút' },
-    ]);
+    useEffect(() => {
+        console.log('Selected Customer in Modal:', selectedCustomer);
+        if (selectedCustomer) {
+            setCustomer(selectedCustomer.fullName);
+            setId(selectedCustomer.ID);
+            setLicensePlate(selectedCustomer.licensePlate);
+            setTime(selectedCustomer.repairStartTime || 0); // Khởi tạo thời gian
+            setServices(selectedCustomer.services || []);
+
+            const totalMinutes = selectedCustomer.repairStartTime || 0;
+            setHours(Math.floor(totalMinutes / 60));
+            setMinutes(totalMinutes % 60);
+        }
+    }, [selectedCustomer]);
 
     useEffect(() => {
         const savedCustomers = JSON.parse(localStorage.getItem('customers')) || [];
@@ -43,13 +60,66 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
         onClose();
     };
 
-    const handleDelete = (index) => {
-        const updatedData = data.filter((_, index) => index !== selectedIndex);
-        setData(updatedData);
-        toast.success('Xóa thành công');
+    const handleAddService = () => {
+        const selectedCategory = category.find((cat) => cat._id === selectedService);
+        if (selectedCategory) {
+            const serviceTime = selectedCategory.time || 0; // Lấy thời gian dịch vụ
+            setServices((prev) => [
+                ...prev,
+                {
+                    _id: selectedCategory._id,
+                    name: selectedCategory.name,
+                    abbreviation: selectedCategory.abbreviation,
+                    time: serviceTime,
+                },
+            ]);
+
+            // Cập nhật thời gian
+            setTime((prevTime) => {
+                const newTime = prevTime + serviceTime;
+                const newHours = Math.floor(newTime / 60);
+                const newMinutes = newTime % 60;
+                setHours(newHours); // Cập nhật giờ
+                setMinutes(newMinutes); // Cập nhật phút
+                console.log('New total time:', newTime);
+                return newTime;
+            });
+
+            setSelectedService(''); // Reset trạng thái dịch vụ được chọn
+        } else {
+            toast.error('Vui lòng chọn một dịch vụ hợp lệ');
+        }
+    };
+
+    const handleDeleteService = () => {
+        const deletedServiceTime = services[selectedIndex]?.time || 0; // Lấy thời gian dịch vụ bị xóa
+        setServices((prev) => prev.filter((_, index) => index !== selectedIndex));
+        setTime((prevTime) => prevTime - deletedServiceTime); // Giảm thời gian khi xóa dịch vụ
         setShowConfirm(false);
         setSelectedIndex(null);
+        toast.success('Dịch vụ đã được xóa');
     };
+
+    useEffect(() => {
+        const fetchCategory = async () => {
+            const response = await apiGetCategories();
+            if (response) {
+                setCategory(response.categories);
+            }
+        };
+        fetchCategory();
+    }, []);
+
+    useEffect(() => {
+        const { storeId } = dataUser;
+        const fetchLiftTables = async () => {
+            const response = await apiGetLiftTable(storeId);
+            if (response.success === true) {
+                setLiftTable(response.data);
+            }
+        };
+        fetchLiftTables();
+    }, []);
 
     return (
         <>
@@ -99,10 +169,12 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                                     <Form.Group>
                                         <Form.Label>Bàn nâng</Form.Label>
                                         <Form.Select className="input-customer">
-                                            <option>Chọn dịch vụ</option>
-                                            <option value="1">Nội dung 1</option>
-                                            <option value="2">Nội dung 2</option>
-                                            <option value="3">Nội dung 3</option>
+                                            <option>Chọn bàn nâng</option>
+                                            {liftTable?.map((items) => (
+                                                <option value={items?._id} key={items?._id}>
+                                                    {`Bàn nâng ${items?.number} `}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </div>
@@ -115,7 +187,13 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                                     <div className="col-12 col-md-6">
                                         <Form.Group>
                                             <Form.Label>Giờ</Form.Label>
-                                            <Form.Control type="text" placeholder="Giờ" className="input-customer" />
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Giờ"
+                                                value={hours}
+                                                onChange={(e) => setHours(e.target.value)}
+                                                className="input-customer"
+                                            />
                                         </Form.Group>
                                     </div>
                                     <div className="col-12 col-md-6">
@@ -124,8 +202,8 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                                             <Form.Control
                                                 type="text"
                                                 placeholder="Phút"
-                                                value={time}
-                                                onChange={(e) => setTime(e.target.value)}
+                                                value={minutes}
+                                                onChange={(e) => setMinutes(e.target.value)}
                                                 className="input-customer"
                                             />
                                         </Form.Group>
@@ -135,17 +213,25 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                                 <div className="mb-3">
                                     <Form.Group>
                                         <Form.Label>Nội dung sửa chữa</Form.Label>
-                                        <Form.Select className="input-customer">
+                                        <Form.Select
+                                            className="input-customer"
+                                            value={selectedService}
+                                            onChange={(e) => setSelectedService(e.target.value)}
+                                        >
                                             <option>Chọn dịch vụ</option>
-                                            <option value="1">Nội dung 1</option>
-                                            <option value="2">Nội dung 2</option>
-                                            <option value="3">Nội dung 3</option>
+                                            {category?.map((items) => (
+                                                <option key={items._id} value={items._id}>
+                                                    {items?.name}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </div>
 
                                 <Form.Group className="ms-3">
-                                    <Button variant="primary">Thêm</Button>
+                                    <Button variant="primary" onClick={handleAddService}>
+                                        Thêm
+                                    </Button>
                                 </Form.Group>
                             </Form>
 
@@ -161,18 +247,17 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {data?.map((item, index) => (
-                                            <tr key={index}>
-                                                <td>{item.shortName}</td>
-                                                <td>{item.serviceName}</td>
-                                                <td>{item.time}</td>
+                                        {services?.map((item, index) => (
+                                            <tr key={item._id}>
+                                                <td>{item?.abbreviation}</td>
+                                                <td>{item?.name}</td>
+                                                <td>{item?.time}</td>
                                                 <td>
                                                     <Button
-                                                        className="button-important"
-                                                        variant="danger"
+                                                        className="btn btn-danger"
                                                         onClick={() => {
-                                                            setSelectedIndex(index);
                                                             setShowConfirm(true);
+                                                            setSelectedIndex(index);
                                                         }}
                                                     >
                                                         <FaTrash />
@@ -186,18 +271,29 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                         </div>
                     </div>
                 </Modal.Body>
+
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={onClose}>
+                        Đóng
+                    </Button>
+                    <Button variant="primary" onClick={handleSubmit}>
+                        Lưu
+                    </Button>
+                </Modal.Footer>
             </Modal>
 
             <Modal show={showConfirm} onHide={() => setShowConfirm(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Xác nhận xóa</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>Bạn có chắc chắn muốn xóa mục này?</Modal.Body>
+                <Modal.Body>
+                    <p>Bạn có chắc chắn muốn xóa dịch vụ này không?</p>
+                </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowConfirm(false)}>
                         Hủy
                     </Button>
-                    <Button variant="danger" onClick={handleDelete}>
+                    <Button variant="danger" onClick={handleDeleteService}>
                         Xóa
                     </Button>
                 </Modal.Footer>

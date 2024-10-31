@@ -3,21 +3,16 @@
     padding: 0;
     box-sizing: border-box;
 }
-
-
-
 #container {
     width: 100%;
     height: 100%;
 }
-
 .header {
     display: flex;
     justify-content: space-between;
     height: 50px;
     background-color: whitesmoke;
 }
-
 .notification {
     display: flex;
     justify-content: space-between;
@@ -26,48 +21,39 @@
     padding: 10px;
     border: 1px solid #ccc;
 }
-
 .notification p {
     margin: 0;
 }
-
 .notification div {
     margin: 0;
 }
-
 .notification i {
     cursor: pointer;
     font-size: 20px;
 }
-
 .header-content-left {
     color: red;
     font-size: 2.5rem;
     font-weight: bold;
     text-align: center;
 }
-
 .header-content-right {
     display: flex;
     align-items: center;
     margin-left: -10px;
 }
-
 .date-time {
     font-size: 20px;
     font-weight: bold;
     color: blue;
     margin-left: 0;
 }
-
 #current-date {
     margin-right: 80px;
 }
-
 #current-time {
     margin-right: 40px;
 }
-
 .active {
     background-color: #0078d7;
     height: 80px;
@@ -76,63 +62,52 @@
     border: 1px solid black;
     margin-top: 10px;
 }
-
 .table-active {
     font-size: 1.8rem;
     color: white;
     font-weight: bold;
 }
-
 #table {
     display: table;
     width: 100%;
     border-collapse: collapse;
 }
-
 .table-row {
     display: table-row;
 }
-
 #table-head {
     background-color: #0078d7;
     color: white;
     font-size: 1.25rem;
 }
-
 .table-head {
     background-color: #0078d7;
     color: white;
     font-size: 1.25rem;
 }
-
 .body-row:nth-child(odd) {
     background-color: #337bbd;
     color: white;
 }
-
 .Customer {
     font-weight: bold;
     font-size: 25px;
 }
-
 .body-row:nth-child(even) {
     background-color: #0e68b3;
     color: white;
 }
-
 .table-row span {
     display: table-cell;
     padding: 10px;
     border: 1px solid #ddd;
     font-size: 20px;
 }
-
 .LICENSE-PLATE {
     color: #ffff00;
     font-weight: bold;
     font-size: 15px;
 }
-
 .bye {
     overflow: hidden;
     white-space: nowrap;
@@ -143,7 +118,6 @@
     align-items: center;
     margin-top: 1px;
 }
-
 .content {
     font-weight: bold;
     font-size: 30px;
@@ -152,7 +126,6 @@
     padding-left: 100%;
     margin: 0;
 }
-
 @keyframes scroll {
     0% {
         transform: translateX(0);
@@ -161,58 +134,47 @@
         transform: translateX(-100%);
     }
 }
-
 @media (max-width: 600px) {
     .table-row {
         display: block;
         margin-bottom: 10px;
     }
-
     .header-content-left {
-        font-size: 14px;
+        font-size: 10px;
         display: flex;
         align-items: center;
+        margin-left: -15px;
     }
-
     .table-row span {
         display: block;
         text-align: right;
     }
-
     .table-row span::after {
         content: ':';
         float: right;
     }
-
     #current-date {
         margin-right: 15px;
     }
-
     .header-content-right {
-        margin-top: 14px;
+        margin-right: -17px;
     }
-
-    
 }
-
 .LICENSE-PLATE {
     color: #ffff00;
     font-weight: bold;
     font-size: 3rem;
 }
-
 .Status {
     color: #00ff00;
     font-weight: bold;
     font-size: 1.25rem;
     font-size: 25px;
 }
-
 .table-bottom {
     display: flex;
     width: 100%;
 }
-
 .list-received-customer,
 .list-car-return {
     width: 50%;
@@ -220,7 +182,6 @@
     border-radius: 5px;
     overflow: hidden;
 }
-
 .list-received-customer-content {
     background-color: #0078d7;
     color: white;
@@ -228,23 +189,19 @@
     font-weight: bold;
     padding: 10px;
 }
-
 .table1,
 .table2 {
     display: table;
     width: 100%;
     border-collapse: collapse;
 }
-
 .table-row span {
     padding: 10px;
 }
-
 @media (max-width: 600px) {
     .table-bottom {
         flex-direction: column;
     }
-
     .list-received-customer,
     .list-car-return {
         width: 100%;

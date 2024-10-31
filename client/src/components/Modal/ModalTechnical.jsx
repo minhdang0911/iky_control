@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import Form from 'react-bootstrap/Form';
@@ -8,7 +8,6 @@ import { IoClose } from 'react-icons/io5';
 import { toast } from 'react-toastify';
 import { apiGetTechnicalByStore } from '../../api/store';
 import { apiCreateTechnician, apiDeleteTechnician, apiUpdateTechnician } from '../../api/technical';
-import axios from 'axios';
 
 const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
     const [name, setName] = useState('');
@@ -18,13 +17,8 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
     const [showConfirm, setShowConfirm] = useState(false);
     const { storeId } = dataUser;
 
-    useEffect(() => {
-        if (isShowModal) {
-            fetchTechnicalByStore();
-        }
-    }, [isShowModal]);
-
-    const fetchTechnicalByStore = async () => {
+    const fetchTechnicalByStore = useCallback(async () => {
+        if (!storeId) return;
         try {
             const response = await apiGetTechnicalByStore(storeId);
             if (response.data) {
@@ -34,34 +28,34 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
             console.error('Error fetching technicians:', error);
             toast.error('Có lỗi xảy ra khi lấy danh sách kỹ thuật viên.');
         }
-    };
+    }, [storeId]);
+
+    useEffect(() => {
+        if (isShowModal) {
+            fetchTechnicalByStore();
+        }
+    }, [isShowModal, fetchTechnicalByStore]);
 
     const handleAddTechnician = async () => {
         if (name && phone) {
             if (!/^(0\d{9})$/.test(phone)) {
                 return toast.error('Số điện thoại không hợp lệ');
             }
-
-            // Kiểm tra tên không chứa số
             if (/[^a-zA-ZÀ-ỹ\s]/.test(name)) {
                 return toast.error('Tên không được chứa số hoặc ký tự đặc biệt');
             }
-
             try {
                 const token = localStorage.getItem('token');
                 const response = await apiCreateTechnician(name, phone, storeId, token);
-
                 if (response.status === 201) {
                     toast.success('Thêm mới kỹ thuật viên thành công');
                     resetForm();
                     fetchTechnicalByStore();
                 } else if (response.status === 405) {
-                    // Sửa lỗi so sánh với '=' thành '==='
                     toast.error('Số điện thoại đã được sử dụng');
                 }
             } catch (error) {
                 console.error('Error adding technician:', error);
-                // Chỉ hiển thị thông báo lỗi chung nếu không phải do status 405
                 if (error.response && error.response.status !== 405) {
                     toast.error('Đã xảy ra lỗi. Vui lòng thử lại.');
                 }
@@ -75,46 +69,33 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
         const token = localStorage.getItem('token');
         if (selectedIndex !== null) {
             const updatedTechnicianId = data[selectedIndex]._id;
-
-            // Kiểm tra số điện thoại
             if (!/^(0\d{9})$/.test(phone)) {
                 return toast.error('Định dạng số điện thoại không hợp lệ');
             }
-
-            // Kiểm tra tên không chứa số
-            const response = await apiUpdateTechnician(
-                updatedTechnicianId,
-                {
-                    fullName: name,
-                    phoneNumber: phone,
-                },
-                token,
-            );
-
-            // Kiểm tra phản hồi từ server
-
-            if (response.status === 200) {
-                const updatedData = data.map((item, index) =>
-                    index === selectedIndex ? { ...item, fullName: name, phoneNumber: phone } : item,
+            try {
+                const response = await apiUpdateTechnician(
+                    updatedTechnicianId,
+                    { fullName: name, phoneNumber: phone },
+                    token,
                 );
-                setData(updatedData);
-                toast.success('Cập nhật kỹ thuật viên thành công');
-                resetForm();
-            } else if (response.status === 400) {
-                toast.error('Số điện thoại đã được sử dụng');
-            } else if (response.status === 401) {
-                toast.error('Tên không được chứa số hoặc ký tự đặc biệt');
+                if (response.status === 200) {
+                    const updatedData = [...data];
+                    updatedData[selectedIndex] = { ...updatedData[selectedIndex], fullName: name, phoneNumber: phone };
+                    setData(updatedData);
+                    toast.success('Cập nhật kỹ thuật viên thành công');
+                    resetForm();
+                } else if (response.status === 400) {
+                    toast.error('Số điện thoại đã được sử dụng');
+                } else if (response.status === 401) {
+                    toast.error('Tên không được chứa số hoặc ký tự đặc biệt');
+                }
+            } catch (error) {
+                console.error('Error updating technician:', error);
             }
         } else {
             toast.error('Vui lòng chọn kỹ thuật viên để cập nhật.');
         }
     };
-
-    useEffect(() => {
-        if (isShowModal) {
-            fetchTechnicalByStore();
-        }
-    }, [isShowModal]);
 
     const handleSave = () => {
         if (selectedIndex !== null) {
@@ -124,25 +105,14 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
         }
     };
 
-    // const handleSave = () => {
-    //     if (selectedIndex !== null) {
-    //         handleUpdateTechnician(); // Nếu có chỉ số được chọn thì gọi hàm cập nhật
-    //     } else {
-    //         handleAddTechnician(); // Nếu không thì gọi hàm thêm mới
-    //     }
-    //     resetForm();
-    // };
-
     const handleDelete = async () => {
         const token = localStorage.getItem('token');
-
         if (selectedIndex !== null) {
-            const technicianId = data[selectedIndex]._id; // Lấy ID của kỹ thuật viên đã chọn
-
+            const technicianId = data[selectedIndex]._id;
             try {
                 await apiDeleteTechnician(technicianId, token);
                 toast.success('Xóa thành công');
-                setData(data.filter((_, index) => index !== selectedIndex)); // Cập nhật lại danh sách
+                setData(data.filter((_, index) => index !== selectedIndex));
             } catch (error) {
                 console.error('Error deleting technician:', error);
                 toast.error('Có lỗi xảy ra khi xóa kỹ thuật viên.');
@@ -160,7 +130,6 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
     };
 
     const handleRowClick = (index) => {
-        // Cập nhật thông tin vào ô input khi người dùng nhấp vào hàng
         const selectedItem = data[index];
         setSelectedIndex(index);
         setName(selectedItem.fullName);
@@ -173,30 +142,19 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                 <Modal.Header closeButton>
                     <Modal.Title>Khai báo kỹ thuật viên</Modal.Title>
                 </Modal.Header>
-
                 <Modal.Body>
                     <div className="d-flex">
                         <div className="flex-shrink-0" style={{ flexBasis: '30%' }}>
                             <div className="d-flex flex-column">
-                                <Button
-                                    variant="primary"
-                                    className="mb-2"
-                                    onClick={() => {
-                                        resetForm();
-                                        setSelectedIndex(null);
-                                    }}
-                                >
+                                <Button variant="primary" className="mb-2" onClick={resetForm}>
                                     <FaPlus /> Thêm mới
                                 </Button>
                                 <Button
                                     variant="warning"
                                     className="mb-2"
                                     onClick={() => {
-                                        if (selectedIndex !== null) {
-                                            handleRowClick(selectedIndex); // Lấy thông tin hàng đã chọn
-                                        } else {
-                                            toast.error('Vui lòng chọn kỹ thuật viên để sửa.');
-                                        }
+                                        if (selectedIndex !== null) handleRowClick(selectedIndex);
+                                        else toast.error('Vui lòng chọn kỹ thuật viên để sửa.');
                                     }}
                                 >
                                     <FaEdit /> Sửa
@@ -209,7 +167,6 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                                 </Button>
                             </div>
                         </div>
-
                         <div className="flex-grow-1 ps-4">
                             <h5>Thông tin</h5>
                             <Form>
@@ -224,7 +181,6 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                                             onChange={(e) => setName(e.target.value)}
                                         />
                                     </Form.Group>
-
                                     <Form.Group style={{ flex: 1 }}>
                                         <Form.Label>Số điện thoại</Form.Label>
                                         <Form.Control
@@ -237,7 +193,6 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                                     </Form.Group>
                                 </div>
                             </Form>
-
                             <Table striped bordered hover className="table-technical">
                                 <thead>
                                     <tr>
@@ -247,7 +202,7 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                                 </thead>
                                 <tbody>
                                     {data?.map((item, index) => (
-                                        <tr key={index} onClick={() => handleRowClick(index)}>
+                                        <tr key={item._id} onClick={() => handleRowClick(index)}>
                                             <td>{item.fullName}</td>
                                             <td>{item.phoneNumber}</td>
                                         </tr>
@@ -258,8 +213,6 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                     </div>
                 </Modal.Body>
             </Modal>
-
-            {/* Modal xác nhận xóa */}
             <Modal show={showConfirm} onHide={() => setShowConfirm(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Xác nhận xóa</Modal.Title>

@@ -314,7 +314,7 @@ const sendVerificationEmail = async (email, verificationCode) => {
 };
 
 exports.register = async (req, res) => {
-    const { firstName, lastName, phoneNumber, address, email, password } = req.body; // Lấy cả mật khẩu
+    const { firstName, lastName, phoneNumber, address, email, password } = req.body;
 
     try {
         if (await isEmailRegistered(email)) {

@@ -3,12 +3,13 @@ import { toast } from 'react-toastify';
 import { Form, Input, Select, Button, Table, Pagination, Modal, Typography } from 'antd';
 import { apiGetAllTechnical, apiCreateTechnician, apiDeleteTechnician, apiUpdateTechnician } from '../../api/technical';
 import { apiGetAllStore } from '../../api/store';
-import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import * as XLSX from 'xlsx';
 
 const { Option } = Select;
 const { Text } = Typography;
 
-const CreateTechnicianForm = () => {
+const ManageTechnical = () => {
     const [fullName, setFullName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [storeId, setStoreId] = useState('');
@@ -48,6 +49,7 @@ const CreateTechnicianForm = () => {
     useEffect(() => {
         fetchStores();
         fetchTechnicians();
+        document.title = 'Quản lý kĩ thuật viên';
     }, [currentPage, searchQuery]);
 
     const handleModalOpen = (technician) => {
@@ -166,59 +168,133 @@ const CreateTechnicianForm = () => {
             }));
     }, [technicians, searchQuery]);
 
+    const exportToExcel = async () => {
+        const allTechnicians = []; // Mảng để chứa tất cả kỹ thuật viên
+        const totalPages = Math.ceil(totalTechnicians / 10); // Tính số trang
+
+        // Lặp qua từng trang để lấy dữ liệu kỹ thuật viên
+        for (let page = 1; page <= totalPages; page++) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await apiGetAllTechnical(token, page, 10);
+                allTechnicians.push(...response.data); // Lưu dữ liệu vào mảng
+            } catch (error) {
+                console.error('Error fetching technicians:', error);
+                toast.error('Không thể tải kỹ thuật viên. Vui lòng thử lại.');
+                return; // Dừng hàm nếu có lỗi
+            }
+        }
+
+        const workbook = XLSX.utils.book_new();
+        const currentDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-'); // Định dạng ngày
+
+        // Tạo worksheet cho từng trang với dữ liệu riêng biệt
+        for (let page = 1; page <= totalPages; page++) {
+            const token = localStorage.getItem('token');
+            let techniciansForPage = [];
+
+            try {
+                const response = await apiGetAllTechnical(token, page, 10);
+                techniciansForPage = response.data; // Lấy dữ liệu cho trang hiện tại
+            } catch (error) {
+                console.error('Error fetching technicians:', error);
+                toast.error('Không thể tải kỹ thuật viên. Vui lòng thử lại.');
+                return; // Dừng hàm nếu có lỗi
+            }
+
+            // Chuyển đổi dữ liệu thành định dạng Excel cho trang hiện tại
+            const worksheet = XLSX.utils.json_to_sheet(
+                techniciansForPage.map((technician, index) => ({
+                    STT: (page - 1) * 10 + index + 1, // Tính STT cho từng kỹ thuật viên
+                    'Họ tên': technician.fullName,
+                    'Số điện thoại': technician.phoneNumber,
+                    'Cửa hàng': technician.store ? technician.store.name : 'Chưa có cửa hàng',
+                })),
+            );
+
+            // Thêm worksheet vào workbook
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Danh sách ${page}`);
+        }
+
+        // Xuất file
+        XLSX.writeFile(workbook, `danh_sach_ki_thuat_vien-${currentDate}.xlsx`);
+    };
+
     const columns = [
         {
             title: 'Họ tên',
             dataIndex: 'fullName',
             key: 'fullName',
             sorter: (a, b) => a.fullName.localeCompare(b.fullName),
+            width: '30%',
         },
         {
             title: 'Số điện thoại',
             dataIndex: 'phoneNumber',
             key: 'phoneNumber',
+            width: '30%',
         },
         {
             title: 'Cửa hàng',
             dataIndex: 'store',
             key: 'store',
             render: (store) => store || 'Chưa có cửa hàng',
+            width: '30%',
         },
         {
             title: 'Hành động',
             key: 'action',
             render: (_, record) => (
                 <>
-                    <Button icon={<EditOutlined />} onClick={() => handleModalOpen(record)} style={{ marginLeft: 10 }}>
+                    <Button
+                        icon={<EditOutlined />}
+                        onClick={() => handleModalOpen(record)}
+                        size="small"
+                        style={{ marginLeft: 5 }}
+                    >
                         Sửa
                     </Button>
                     <Button
                         icon={<DeleteOutlined />}
                         onClick={() => handleDeleteModalOpen(record._id)}
                         danger
-                        style={{ marginLeft: 10 }}
+                        size="small"
+                        style={{ marginLeft: 5 }}
                     >
                         Xóa
                     </Button>
                 </>
             ),
+            width: '10%',
         },
     ];
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h3>Quản Lý Kỹ Thuật Viên</h3>
+        <div
+            style={{
+                padding: '20px',
+                maxWidth: '800px',
+                margin: '0 auto',
+                borderRadius: '8px',
+                background: '#fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+        >
+            <h3 style={{ textAlign: 'center', marginBottom: '20px' }}>Quản Lý Kỹ Thuật Viên</h3>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <Button icon={<PlusOutlined />} onClick={() => handleModalOpen(null)}>
+                <Button icon={<PlusOutlined />} onClick={() => handleModalOpen(null)} type="primary">
                     Thêm
+                </Button>
+                <Button icon={<ExportOutlined />} onClick={exportToExcel} type="default">
+                    Xuất Excel
                 </Button>
                 <Input
                     placeholder="Tìm kiếm theo tên hoặc số điện thoại"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     suffix={<SearchOutlined />}
-                    style={{ width: '300px' }}
+                    style={{ width: '300px', borderRadius: '4px' }}
                 />
             </div>
 
@@ -227,7 +303,8 @@ const CreateTechnicianForm = () => {
                 columns={columns}
                 rowKey="_id"
                 pagination={false}
-                scroll={{ x: 'max-content' }}
+                scroll={{ x: '100%' }} // Điều chỉnh chiều rộng bảng
+                style={{ borderRadius: '4px' }} // Thêm padding cho bảng
                 onChange={(pagination, filters, sorter) => {
                     const sortOrder = sorter.order || 'ascend';
                     const sortField = sorter.field || 'fullName';
@@ -235,75 +312,54 @@ const CreateTechnicianForm = () => {
                 }}
             />
 
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
-                <Text>
-                    Hiển thị kỹ thuật viên từ {startIndex} đến {endIndex} trên tổng số {totalTechnicians} kỹ thuật viên.
-                </Text>
-            </div>
+            <Pagination
+                current={currentPage}
+                pageSize={limit}
+                total={totalTechnicians}
+                onChange={handlePageChange}
+                style={{ marginTop: '16px', textAlign: 'right', display: 'flex', justifyContent: 'center' }}
+            />
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
-                <Pagination
-                    current={currentPage}
-                    pageSize={limit}
-                    total={totalTechnicians}
-                    onChange={handlePageChange}
-                    showSizeChanger={false}
-                />
-            </div>
+            <p style={{ textAlign: 'center', marginTop: '5px' }}>
+                Hiển thị {startIndex} đến {endIndex} của {totalTechnicians} kĩ thuật viên
+            </p>
 
             <Modal
-                title={editingTechnician ? 'Sửa Kỹ Thuật Viên' : 'Thêm Kỹ Thuật Viên'}
+                title={editingTechnician ? 'Cập nhật kỹ thuật viên' : 'Thêm kỹ thuật viên'}
                 visible={isModalVisible}
+                onOk={editingTechnician ? handleUpdateTechnician : handleCreateTechnician}
                 onCancel={() => setIsModalVisible(false)}
-                footer={[
-                    <Button key="back" onClick={() => setIsModalVisible(false)}>
-                        Hủy
-                    </Button>,
-                    <Button
-                        key="create"
-                        type="primary"
-                        onClick={handleCreateTechnician}
-                        disabled={editingTechnician !== null}
-                    >
-                        Thêm
-                    </Button>,
-                    <Button
-                        key="update"
-                        type="primary"
-                        onClick={handleUpdateTechnician}
-                        disabled={editingTechnician === null}
-                    >
-                        Cập nhật
-                    </Button>,
-                ]}
+                okText={editingTechnician ? 'Cập nhật' : 'Thêm'}
             >
                 <Form layout="vertical">
-                    <Form.Item label="Họ tên" required>
+                    <Form.Item label="Họ tên">
                         <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="Số điện thoại" required>
+                    <Form.Item label="Số điện thoại">
                         <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
                     </Form.Item>
-                    <Form.Item label="Cửa hàng">
-                        <Select value={storeId} onChange={(value) => setStoreId(value)}>
-                            <Option value="">Chọn cửa hàng</Option>
-                            {stores.map((store) => (
-                                <Option key={store._id} value={store._id}>
-                                    {store.name}
-                                </Option>
-                            ))}
-                        </Select>
-                    </Form.Item>
+                    {!editingTechnician && (
+                        <Form.Item label="Cửa hàng">
+                            <Select value={storeId} onChange={setStoreId} placeholder="Chọn cửa hàng">
+                                {stores.map((store) => (
+                                    <Option key={store._id} value={store._id}>
+                                        {store.name}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    )}
                 </Form>
             </Modal>
 
             <Modal
                 title="Xóa Kỹ Thuật Viên"
                 visible={isDeleteModalVisible}
-                onCancel={() => setIsDeleteModalVisible(false)}
                 onOk={handleDelete}
+                onCancel={() => setIsDeleteModalVisible(false)}
                 okText="Xóa"
                 cancelText="Hủy"
+                closable={false}
             >
                 <Text>Bạn có chắc chắn muốn xóa kỹ thuật viên này không?</Text>
             </Modal>
@@ -311,4 +367,4 @@ const CreateTechnicianForm = () => {
     );
 };
 
-export default CreateTechnicianForm;
+export default ManageTechnical;
