@@ -196,6 +196,7 @@ import { apiGetCategories } from '../../api/category';
 import { apiGetUserById } from '../../api/user';
 import Swal from 'sweetalert2';
 import { apiCreateCustomer } from '../../api/customer';
+import Cookies from 'js-cookie';
 
 const ModalCreateCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers }) => {
     const [isOpen, setIsOpen] = useState(true);
@@ -229,7 +230,7 @@ const ModalCreateCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
+            const token = Cookies.get('token');
             if (!token) {
                 console.log('Token không tồn tại, người dùng cần đăng nhập lại.');
                 return;
@@ -284,7 +285,7 @@ const ModalCreateCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers
     const toggleOpen = () => setIsOpen((prev) => !prev);
 
     const handleSubmit = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         const repairStartTimeFromInput = (parseInt(repairStartHours) || 0) * 60 + (parseInt(repairStartMinutes) || 0);
         const repairStartTime = repairStartTimeFromInput || totalTime; // Use input or total time
 
@@ -514,34 +515,36 @@ const ModalCreateCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers
                         </Form.Select>
                         <Button onClick={handleServiceSelect}>Thêm dịch vụ</Button>
 
-                        <Table striped bordered hover className="mt-3">
-                            <thead>
-                                <tr>
-                                    <th>Dịch vụ</th>
-                                    <th>Thời gian</th>
-                                    <th>Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {services.map((service, index) => (
-                                    <tr key={index}>
-                                        <td>{service.name}</td>
-                                        <td>{service.time} phút</td>
-                                        <td>
-                                            <Button
-                                                variant="danger"
-                                                onClick={() => {
-                                                    setShowConfirm(true);
-                                                    setSelectedIndex(index);
-                                                }}
-                                            >
-                                                <FaTrash />
-                                            </Button>
-                                        </td>
+                        <div className="table-create-customer">
+                            <Table striped bordered hover className="mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>Dịch vụ</th>
+                                        <th>Thời gian</th>
+                                        <th>Hành động</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </Table>
+                                </thead>
+                                <tbody>
+                                    {services.map((service, index) => (
+                                        <tr key={index}>
+                                            <td>{service.name}</td>
+                                            <td>{service.time} phút</td>
+                                            <td>
+                                                <Button
+                                                    variant="danger"
+                                                    onClick={() => {
+                                                        setShowConfirm(true);
+                                                        setSelectedIndex(index);
+                                                    }}
+                                                >
+                                                    <FaTrash />
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </div>
                     </div>
                 </div>
             </Modal.Body>

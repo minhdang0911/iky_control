@@ -25,7 +25,6 @@ const CarList = () => {
             })
             .catch((error) => console.error('Error fetching data:', error));
     }, []);
-
     useEffect(() => {
         const updateDateTime = () => {
             const now = new Date();

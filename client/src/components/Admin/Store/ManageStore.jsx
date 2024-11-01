@@ -8,6 +8,7 @@ import './ManageStore.scss';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { apiGetUserById } from '../../../api/user';
+import Cookies from 'js-cookie';
 
 const { Column } = Table;
 const { Option } = Select;
@@ -89,7 +90,7 @@ const CreateStore = ({ dataUser }) => {
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
+            const token = Cookies.get('token');
 
             if (!token) {
                 console.log('Token không tồn tại, người dùng cần đăng nhập lại.');
@@ -126,7 +127,7 @@ const CreateStore = ({ dataUser }) => {
                 confirmButtonText: 'OK',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    localStorage.removeItem('token');
+                    Cookies.remove('token');
                     window.location.href = '/login';
                 }
             });

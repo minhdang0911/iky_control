@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './carliststaff.scss';
 import icons from '../../Utils/icons';
 import {
@@ -20,8 +20,8 @@ import {
     ModalReceivingCustomer,
 } from '../Modal';
 import { toast } from 'react-toastify';
-import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
+import { Modal, Button } from 'antd';
+
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import logo from '../../assets/img/logocompany.png';
@@ -32,6 +32,11 @@ import { apiLogout } from '../../api/user';
 import CreateStore from '../Admin/Store/ManageStore';
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
 import { Accordion, Card, Table } from 'react-bootstrap';
+import Cookies from 'js-cookie';
+import moment from 'moment/moment';
+import { Tabs } from 'antd';
+
+const { TabPane } = Tabs;
 
 const Dashboard = () => {
     const [cars, setCars] = useState([]);
@@ -50,6 +55,7 @@ const Dashboard = () => {
     const [hideStore, setHideStore] = useState(true);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [activeKey, setActiveKey] = useState('home');
     // const [selectedCar, setSelectedCar] = useState(null); // State lưu dữ liệu của hàng được chọn
 
     //api thực tế
@@ -211,9 +217,6 @@ const Dashboard = () => {
         setSelectedCustomer(customer);
     };
 
-    console.log('Selected Customer Row:', selectedCustomerRow);
-    console.log('Selected Customer Data:', selectedCustomer);
-
     const handleIncreaseTime = (timeToIncrease) => {
         const index = selectedIndex;
         if (index !== null) {
@@ -233,8 +236,8 @@ const Dashboard = () => {
         navigate('/login');
     };
 
+    const token = useMemo(() => Cookies.get('token'), []);
     useEffect(() => {
-        const token = localStorage.getItem('token');
         if (!token) {
             Swal.fire({
                 title: 'Bạn chưa đăng nhập!',
@@ -248,12 +251,6 @@ const Dashboard = () => {
         }
 
         const fetchUserData = async () => {
-            if (!token) {
-                console.log('Token không tồn tại, người dùng cần đăng nhập lại.');
-                setIsLoggedIn(false);
-                return;
-            }
-
             try {
                 const response = await axios.get('http://localhost:5000/api/user/getUser', {
                     headers: { Authorization: `Bearer ${token}` },
@@ -266,46 +263,44 @@ const Dashboard = () => {
                     setIsLoggedIn(true);
                     setData(userData);
 
+                    // Fetch lift tables if storeId exists
                     if (userData.storeId) {
                         await fetchLiftTables(userData.storeId);
                     } else {
                         console.log('Không có storeId trong dữ liệu người dùng.');
                     }
 
-                    // Gán thời gian hết hạn token là 100 phút
-                    const expirationTime = 6000 * 1000;
-                    setTimeout(() => {
-                        handleTokenExpired();
-                    }, expirationTime);
+                    // Set token expiration handling
+                    setTokenExpiration();
                 } else {
                     console.log('Lỗi xác thực người dùng:', response.data.message);
                     setIsLoggedIn(false);
                 }
             } catch (error) {
-                if (error.response && error.response.status === 402) {
-                    handleTokenExpired();
-                } else {
-                    console.error('Lỗi từ server:', error.response?.data || error.message);
-                }
+                handleApiError(error);
             }
         };
 
         const fetchLiftTables = async (storeID) => {
             try {
                 const response = await axios.get(`http://localhost:5000/api/lifttable/getTables?storeId=${storeID}`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
 
                 if (response.data.success) {
-                    console.log('cars res', response);
-                    setCars(response.data.data); // Cập nhật trạng thái cars
-                    console.log('Dữ liệu mới được setCars:', cars); // In ra dữ liệu
+                    setCars(response.data.data);
                 } else {
                     console.log('Lỗi lấy danh sách bàn nâng:', response.data.message);
                 }
             } catch (error) {
                 console.error('Lỗi khi lấy danh sách bàn nâng:', error);
             }
+        };
+
+        const setTokenExpiration = () => {
+            const expirationTime = 6000 * 1000; // 100 phút
+            const tokenExpirationTimeout = setTimeout(handleTokenExpired, expirationTime);
+            return () => clearTimeout(tokenExpirationTimeout);
         };
 
         const handleTokenExpired = () => {
@@ -316,7 +311,7 @@ const Dashboard = () => {
                 confirmButtonText: 'OK',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    localStorage.removeItem('token');
+                    Cookies.remove('token');
                     setIsLoggedIn(false);
                     setFirstName('');
                     setLastName('');
@@ -325,19 +320,18 @@ const Dashboard = () => {
             });
         };
 
-        fetchUserData(); // Gọi hàm fetch dữ liệu khi component được render
+        const handleApiError = (error) => {
+            if (error.response && error.response.status === 402) {
+                handleTokenExpired();
+            } else {
+                console.error('Lỗi từ server:', error.response?.data || error.message);
+            }
+        };
 
-        // Set timeout cho token hết hạn ngay khi component render
-        const expirationTime = 6000 * 1000; // 100 phút
-        const tokenExpirationTimeout = setTimeout(handleTokenExpired, expirationTime);
+        fetchUserData();
+    }, [navigate, token]);
 
-        // Clean up the timeout on component unmount
-        return () => clearTimeout(tokenExpirationTimeout);
-    }, []);
-
-    const token = localStorage.getItem('token');
-
-    // Hàm thông báo hết hạn token
+    // // Hàm thông báo hết hạn token
     const handleTokenExpired = useCallback(() => {
         Swal.fire({
             title: 'Phiên đăng nhập đã hết hạn!',
@@ -346,7 +340,7 @@ const Dashboard = () => {
             confirmButtonText: 'OK',
         }).then((result) => {
             if (result.isConfirmed) {
-                localStorage.removeItem('token');
+                Cookies.remove('token');
                 setIsLoggedIn(false);
                 setFirstName('');
                 setLastName('');
@@ -355,7 +349,7 @@ const Dashboard = () => {
         });
     }, [navigate]);
 
-    // Hàm lấy dữ liệu người dùng
+    // // Hàm lấy dữ liệu người dùng
     const fetchUserData = useCallback(async () => {
         if (!token) {
             Swal.fire({
@@ -379,8 +373,6 @@ const Dashboard = () => {
                 setFirstName(userData.firstName);
                 setLastName(userData.lastName);
                 setIsLoggedIn(true);
-                setData(userData);
-
                 if (userData.storeId) {
                     await fetchLiftTables(userData.storeId);
                 }
@@ -425,7 +417,7 @@ const Dashboard = () => {
 
     const handleLogout = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = Cookies.get('token');
 
             if (!token) {
                 throw new Error('Token không tồn tại, hãy đăng nhập lại.');
@@ -434,7 +426,7 @@ const Dashboard = () => {
             const response = await apiLogout(token); // Gọi apiLogout
 
             if (response.success) {
-                localStorage.removeItem('token');
+                Cookies.remove('token');
                 setFirstName('');
                 setLastName('');
                 setIsLoggedIn(false); // Cập nhật trạng thái đăng nhập
@@ -460,8 +452,8 @@ const Dashboard = () => {
     // api thực tế
     // useEffect(() => {
     //     const fetchCustomer = async () => {
-    //         const token = localStorage.getItem('Access token');
-    //         console.log('token', token);
+    //         const token = Cookies.get('Access token');
+
     //         try {
     //             const response = await fetch('/api/queues/list', {
     //                 method: 'GET',
@@ -500,12 +492,10 @@ const Dashboard = () => {
     // };
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
         const fetchCustomers = async () => {
-            const response = await apiGetCustomers(token);
+            const response = await apiGetCustomers();
             if (response) {
                 setCustomers(response.customers);
-                console.log(customers);
             }
         };
         fetchCustomers();
@@ -520,11 +510,11 @@ const Dashboard = () => {
                         modalStates[key] && (
                             <div className="modal-overlay" key={key}>
                                 <ModalComponent
-                                    isShowModal={modalStates[key]} // Kiểm tra state modal
-                                    onClose={() => toggleModal(key)} // Đảm bảo toggleModal đóng đúng modal
-                                    onSubmit={handleModalSubmit} // Nếu có
+                                    isShowModal={modalStates[key]}
+                                    onClose={() => toggleModal(key)}
+                                    onSubmit={handleModalSubmit}
                                     selectedCar={cars[selectedIndex]}
-                                    onUpdate={handleModalSubmit} // Gọi cập nhật từ nơi khác
+                                    onUpdate={handleModalSubmit}
                                     onHandle={handleModalSubmitCustomer}
                                     receivedCustomers={receivedCustomers}
                                     onDecreaseTime={handleDecreaseTime}
@@ -555,36 +545,219 @@ const Dashboard = () => {
                         )}
                     </div>
                 </header>
+                <div>
+                    <Tabs activeKey={activeKey} onChange={setActiveKey} style={{ marginBottom: 16, marginLeft: 25 }}>
+                        <TabPane tab="Trang Chính" key="home">
+                            <div className="card-grid">
+                                {/* Card content for "Trang Chính" */}
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCreateLiftingTable')}
+                                        >
+                                            <GoPlusCircle className="icon-plus" size={30} />
+                                            <p className="text-function">Tạo bản nâng</p>
+                                        </div>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => {
+                                                setShowConfirm(true);
+                                            }}
+                                        >
+                                            <IoMdCloseCircle className="icon-close" size={30} />
+                                            <p className="text-function">Xóa bản nâng</p>
+                                        </div>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalUpdateLiftingTable')}
+                                        >
+                                            <LuClipboardEdit size={30} />
+                                            <p className="text-function">Sửa bản nâng</p>
+                                        </div>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalSynchronousLeb')}
+                                        >
+                                            <IoReloadOutline className="icon-plus" size={30} />
+                                            <p className="text-function">Đồng bộ bảng leb</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Bảng nâng</p>
+                                </div>
 
-                <div className="tabs">
-                    <div
-                        className={`tabs-content ${activeTab === 'home' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('home')}
-                    >
-                        Trang Chính
-                    </div>
-                    <div
-                        className={`tabs-content ${activeTab === 'settings' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('settings')}
-                    >
-                        Cấu Hình
-                    </div>
-                    <div
-                        className={`tabs-content ${activeTab === 'import' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('import')}
-                    >
-                        Import
-                    </div>
-                    <div
-                        className={`tabs-content ${activeTab === 'help' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('help')}
-                    >
-                        Trợ Giúp
-                    </div>
+                                {/* Other cards for "Trang Chính" */}
+                                {/* Repeat similar structure for other cards */}
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div className="cart-center">
+                                            <TiSpanner className="icon-plus" size={30} />
+                                            <p className="text-function">Tiếp nhận xe</p>
+                                        </div>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalDecreaseTime')}
+                                        >
+                                            <FaArrowAltCircleDown className="icon-green" size={30} />
+                                            <p className="text-function">Giảm thời gian</p>
+                                        </div>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalIncreaseTime')}
+                                        >
+                                            <FaArrowAltCircleUp className="icon-green" size={30} />
+                                            <p className="text-function">Tăng thời gian</p>
+                                        </div>
+                                        <div className="cart-center">
+                                            <LuBookOpenCheck size={30} />
+                                            <p className="text-function">Trả xe</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin sửa chữa</p>
+                                </div>
+
+                                <div className="card ">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCreateCustomer')}
+                                        >
+                                            <RiUserShared2Fill size={30} />
+                                            <p className="text-function"> Tiếp nhận khách</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalSynchronousCustomer')}
+                                        >
+                                            <IoReloadOutline className="icon-plus" size={30} />
+                                            <span className="text-function">Đồng bộ thông </span>
+                                            <span className="text-function">tin khách hàng</span>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <HiSpeakerphone className="icon-plus" size={30} />
+                                            <p className="text-function">Thông báo</p>
+                                        </div>
+
+                                        <div className="cart-center">
+                                            <MdClose className="icon-close" size={30} />
+                                            <p className="text-function"> Tắt thông báo</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin khách hàng</p>
+                                </div>
+
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div className="cart-center">
+                                            <GrPrint size={30} />
+                                            <p className="text-function">Xuất báo cáo</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Báo cáo</p>
+                                </div>
+
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalCategory')}
+                                        >
+                                            <SlClock size={30} />
+                                            <p className="text-function"> Danh mục thời</p>
+                                            <p className="text-function"> gian sửa chửa</p>
+                                        </div>
+
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalTechnical')}
+                                        >
+                                            <FaAddressCard size={30} />
+                                            <p className="text-function">Danh sách kĩ </p>
+                                            <p className="text-function">thuật viên</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Khai báo</p>
+                                </div>
+                            </div>
+                        </TabPane>
+
+                        <TabPane tab="Cấu Hình" key="settings">
+                            <div className="card-grid">
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalConfigSystem')}
+                                        >
+                                            <IoSettingsOutline size={30} />
+                                            <p className="text-function">Cấu hình thông số hệ thống</p>
+                                        </div>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalLCD')}
+                                        >
+                                            <FaFlipboard size={30} />
+                                            <p className="text-function">Cấu hình thông số thể hiện LCD</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin</p>
+                                </div>
+
+                                {/* Other cards for "Cấu Hình" */}
+                            </div>
+                        </TabPane>
+
+                        <TabPane tab="Import" key="import">
+                            <div className="card-grid">
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalImport')}
+                                        >
+                                            <IoDocuments size={30} />
+                                            <p className="text-function">Import danh mục thời gian sửa chữa</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Import</p>
+                                </div>
+                            </div>
+                        </TabPane>
+
+                        <TabPane tab="Trợ Giúp" key="help">
+                            <div className="card-grid">
+                                <div className="card">
+                                    <div className="cart-top">
+                                        <a
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            href="https://iky.vn/"
+                                            style={{ textDecoration: 'none' }}
+                                        >
+                                            <div className="cart-center">
+                                                <FaEarthAmericas size={30} />
+                                                <p className="text-function">Trang chủ</p>
+                                            </div>
+                                        </a>
+                                        <div
+                                            className="cart-center"
+                                            onClick={() => handleToggleModal('isShowModalInfomation')}
+                                        >
+                                            <HiQuestionMarkCircle size={30} />
+                                            <p className="text-function">Phiên bản</p>
+                                        </div>
+                                    </div>
+                                    <p className="function">Thông tin</p>
+                                </div>
+                            </div>
+                        </TabPane>
+                    </Tabs>
                 </div>
 
                 <div className="home-content">
-                    <div className="card-grid">
+                    {/* <div className="card-grid">
                         {activeTab === 'home' && (
                             <>
                                 <div className="card">
@@ -822,7 +995,7 @@ const Dashboard = () => {
                                 </div>
                             </>
                         )}
-                    </div>
+                    </div> */}
 
                     <div className="active-tables">
                         <div className="background-container">
@@ -921,43 +1094,44 @@ const Dashboard = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {cars?.map((car) => (
-                                                        <tr
-                                                            key={car._id}
-                                                            onClick={() => handleRowClick(car._id)}
-                                                            style={{
-                                                                backgroundColor:
-                                                                    selectedIndex === cars.indexOf(car)
-                                                                        ? '#f0f0f0'
-                                                                        : 'transparent',
-                                                                cursor: 'pointer',
-                                                            }}
-                                                        >
-                                                            <td style={{ padding: '8px 16px' }}>
-                                                                {isLoggedIn && car ? car.number : ''}
-                                                            </td>
-                                                            <td style={{ padding: '8px 16px' }}>
-                                                                {isLoggedIn && car ? car?.technician?.fullName : ''}
-                                                            </td>
-                                                            <td style={{ padding: '8px 16px' }}>
-                                                                {isLoggedIn && car ? car.description : ''}
-                                                            </td>
-                                                            <td style={{ padding: '8px 16px' }}>
-                                                                {isLoggedIn && car ? 'đã xong' : ''}
-                                                            </td>
-                                                            <td style={{ padding: '8px 16px' }}></td>
-                                                            <td style={{ padding: '8px 16px' }}></td>
-                                                            <td style={{ padding: '8px 16px' }}></td>
-                                                            <td style={{ padding: '8px 16px' }}></td>
-                                                            <td style={{ padding: '8px 16px' }}></td>
-                                                        </tr>
-                                                    ))}
+                                                    {cars
+                                                        ?.filter((car) => moment(car.createdAt).isSame(moment(), 'day'))
+                                                        .map((car) => (
+                                                            <tr
+                                                                key={car._id}
+                                                                onClick={() => handleRowClick(car._id)}
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        selectedIndex === cars.indexOf(car)
+                                                                            ? '#f0f0f0'
+                                                                            : 'transparent',
+                                                                    cursor: 'pointer',
+                                                                }}
+                                                            >
+                                                                <td style={{ padding: '8px 16px' }}>
+                                                                    {isLoggedIn && car ? car.number : ''}
+                                                                </td>
+                                                                <td style={{ padding: '8px 16px' }}>
+                                                                    {isLoggedIn && car ? car?.technician?.fullName : ''}
+                                                                </td>
+                                                                <td style={{ padding: '8px 16px' }}>
+                                                                    {isLoggedIn && car ? car.description : ''}
+                                                                </td>
+                                                                <td style={{ padding: '8px 16px' }}>
+                                                                    {isLoggedIn && car ? 'đã xong' : ''}
+                                                                </td>
+                                                                <td style={{ padding: '8px 16px' }}></td>
+                                                                <td style={{ padding: '8px 16px' }}></td>
+                                                                <td style={{ padding: '8px 16px' }}></td>
+                                                                <td style={{ padding: '8px 16px' }}></td>
+                                                                <td style={{ padding: '8px 16px' }}></td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </div>
                                 </div>
-
                                 <div className="row-tables">
                                     <div className="active-table" style={{ overflowX: 'auto' }}>
                                         <p className="active-table-title">DANH SÁCH KHÁCH HÀNG</p>
@@ -989,9 +1163,16 @@ const Dashboard = () => {
                                                         <tr
                                                             key={customer._id} // Sử dụng _id làm key
                                                             onClick={() => handleRowClickCustomer(customer)}
-                                                            className={
-                                                                selectedCustomerRow === index ? 'active-row' : ''
-                                                            }
+                                                            style={{
+                                                                backgroundColor:
+                                                                    selectedCustomerRow === customers.indexOf(customer)
+                                                                        ? '#f0f0f0'
+                                                                        : 'transparent',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                            // className={
+                                                            //     selectedCustomerRow === index ? 'active-row' : ''
+                                                            // }
                                                         >
                                                             <td>{customer?.cardNumber}</td>
                                                             <td>{customer?.fullName}</td>
@@ -1130,6 +1311,13 @@ const Dashboard = () => {
                                                         key={index}
                                                         onClick={() => setSelectedReturnCarRow(index)}
                                                         className={selectedReturnCarRow === index ? 'active-row' : ''}
+                                                        // style={{
+                                                        //     backgroundColor:
+                                                        //         selectedCustomerRow === returnCar.indexOf(items)
+                                                        //             ? '#f0f0f0'
+                                                        //             : 'transparent',
+                                                        //     cursor: 'pointer',
+                                                        // }}
                                                     >
                                                         <td>{items?.ID}</td>
                                                         <td>{items?.customer}</td>
@@ -1155,21 +1343,36 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            <Modal show={showConfirm} onHide={() => setShowConfirm(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Xác nhận xóa</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>Bạn có chắc chắn muốn xóa bản nâng này?</Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+            <Modal
+                title="Xác nhận xóa"
+                open={showConfirm}
+                onCancel={() => setShowConfirm(false)}
+                footer={[
+                    <Button key="cancel" onClick={() => setShowConfirm(false)}>
                         Hủy
-                    </Button>
-                    <Button variant="danger" onClick={handleDelete}>
+                    </Button>,
+                    <Button key="delete" type="danger" onClick={handleDelete}>
                         Xóa
-                    </Button>
-                </Modal.Footer>
+                    </Button>,
+                ]}
+            >
+                <p>Bạn có chắc chắn muốn xóa bản nâng này?</p>
             </Modal>
         </>
+        // <Modal show={showConfirm} onHide={() => setShowConfirm(false)}>
+        //     <Modal.Header closeButton>
+        //         <Modal.Title>Xác nhận xóa</Modal.Title>
+        //     </Modal.Header>
+        //     <Modal.Body>Bạn có chắc chắn muốn xóa bản nâng này?</Modal.Body>
+        //     <Modal.Footer>
+        //         <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+        //             Hủy
+        //         </Button>
+        //         <Button variant="danger" onClick={handleDelete}>
+        //             Xóa
+        //         </Button>
+        //     </Modal.Footer>
+        // </Modal>
     );
 };
 

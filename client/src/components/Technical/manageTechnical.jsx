@@ -5,6 +5,7 @@ import { apiGetAllTechnical, apiCreateTechnician, apiDeleteTechnician, apiUpdate
 import { apiGetAllStore } from '../../api/store';
 import { DeleteOutlined, EditOutlined, ExportOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
+import Cookies from 'js-cookie';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -35,7 +36,7 @@ const ManageTechnical = () => {
     };
 
     const fetchTechnicians = async (sortField = 'fullName', sortOrder = 'ascend') => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         try {
             const response = await apiGetAllTechnical(token, currentPage, limit, sortField, sortOrder, searchQuery);
             setTechnicians(response.data);
@@ -71,7 +72,7 @@ const ManageTechnical = () => {
     };
 
     const handleCreateTechnician = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         try {
             const response = await apiCreateTechnician(fullName, phoneNumber, storeId, token);
             handleResponse(response, 'Thêm mới thành công');
@@ -82,7 +83,7 @@ const ManageTechnical = () => {
     };
 
     const handleUpdateTechnician = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (editingTechnician) {
             try {
                 const response = await apiUpdateTechnician(
@@ -134,7 +135,7 @@ const ManageTechnical = () => {
     };
 
     const handleDelete = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         try {
             await apiDeleteTechnician(deletingTechnicianId, token);
             toast.success('Xóa kỹ thuật viên thành công');
@@ -175,7 +176,7 @@ const ManageTechnical = () => {
         // Lặp qua từng trang để lấy dữ liệu kỹ thuật viên
         for (let page = 1; page <= totalPages; page++) {
             try {
-                const token = localStorage.getItem('token');
+                const token = Cookies.get('token');
                 const response = await apiGetAllTechnical(token, page, 10);
                 allTechnicians.push(...response.data); // Lưu dữ liệu vào mảng
             } catch (error) {
@@ -190,7 +191,7 @@ const ManageTechnical = () => {
 
         // Tạo worksheet cho từng trang với dữ liệu riêng biệt
         for (let page = 1; page <= totalPages; page++) {
-            const token = localStorage.getItem('token');
+            const token = Cookies.get('token');
             let techniciansForPage = [];
 
             try {

@@ -1,9 +1,6 @@
 const Technician = require('../models/Technician');
 const Store = require('../models/Store');
 
-// Thêm kỹ thuật viên mới
-// Thêm kỹ thuật viên mới
-// Thêm kỹ thuật viên mới
 exports.createTechnician = async (req, res) => {
     const { fullName, phoneNumber, store } = req.body;
 
@@ -142,7 +139,7 @@ exports.getAllTechnical = async (req, res) => {
 // Xóa kỹ thuật viên theo ID
 // technicianController.js
 exports.deleteTechnician = async (req, res) => {
-    const { id } = req.params; // Lấy ID từ params
+    const { id } = req.params;
 
     try {
         const technician = await Technician.findByIdAndDelete(id);

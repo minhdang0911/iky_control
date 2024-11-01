@@ -1,4 +1,5 @@
 import axios from './axios';
+import Cookies from 'js-cookie';
 export const apiCreateLiftTable = (data) => {
     return axios({
         url: '/lifttable/add',
@@ -18,7 +19,7 @@ export const apiDeleteLiftTable = (id) => {
     return axios({
         url: `/lifttable/${id}`,
         method: 'delete',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${Cookies.get('token')}` },
     });
 };
 
@@ -26,7 +27,7 @@ export const apiUpdateLiftTable = (id, updatedData) => {
     return axios({
         url: `/lifttable/update/${id}`,
         method: 'put',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${Cookies.get('token')}` },
         data: updatedData,
     });
 };

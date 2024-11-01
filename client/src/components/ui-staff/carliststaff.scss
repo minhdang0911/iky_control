@@ -107,7 +107,6 @@
     flex-wrap: wrap;
     gap: 10px;
     justify-content: flex-start;
-    margin-top: -30px;
 }
 .card {
     background-color: #fff;
@@ -315,6 +314,12 @@ tbody tr:last-child td {
     .background-container {
         width: 111%;
     }
+
+    .table-create-customer {
+        max-width: 600px;
+        width: 100%;
+        overflow-x: auto;
+    }
     .customer-container {
         flex-direction: column;
     }
@@ -367,7 +372,7 @@ tbody tr:last-child td {
     .header {
         align-items: flex-start;
         margin-bottom: 13px;
-        width: 285px;
+        width: 305px;
         margin-left: 22px;
     }
     .welcome-text {
@@ -414,6 +419,7 @@ tbody tr:last-child td {
     }
     .row-tables {
         width: 115% !important;
+        margin-left: -12px;
     }
     .text-function {
         font-size: 8px !important;

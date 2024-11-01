@@ -8,6 +8,7 @@ import { IoClose } from 'react-icons/io5';
 import { toast } from 'react-toastify';
 import { apiGetTechnicalByStore } from '../../api/store';
 import { apiCreateTechnician, apiDeleteTechnician, apiUpdateTechnician } from '../../api/technical';
+import Cookies from 'js-cookie';
 
 const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
     const [name, setName] = useState('');
@@ -45,7 +46,7 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
                 return toast.error('Tên không được chứa số hoặc ký tự đặc biệt');
             }
             try {
-                const token = localStorage.getItem('token');
+                const token = Cookies.get('token');
                 const response = await apiCreateTechnician(name, phone, storeId, token);
                 if (response.status === 201) {
                     toast.success('Thêm mới kỹ thuật viên thành công');
@@ -66,7 +67,7 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
     };
 
     const handleUpdateTechnician = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (selectedIndex !== null) {
             const updatedTechnicianId = data[selectedIndex]._id;
             if (!/^(0\d{9})$/.test(phone)) {
@@ -106,7 +107,7 @@ const ModalTechnical = ({ dataUser, isShowModal, onClose }) => {
     };
 
     const handleDelete = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (selectedIndex !== null) {
             const technicianId = data[selectedIndex]._id;
             try {

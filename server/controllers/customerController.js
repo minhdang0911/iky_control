@@ -41,7 +41,6 @@ exports.addCustomer = async (req, res) => {
             });
         }
 
-        // Tạo khách hàng mới nếu không có trùng lặp trong ngày
         const newCustomer = new Customer({
             fullName,
             cardNumber,

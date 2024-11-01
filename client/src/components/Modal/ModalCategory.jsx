@@ -7,6 +7,7 @@ import { FaPlus, FaEdit, FaSave, FaTrash } from 'react-icons/fa';
 import { Container, Row, Col } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { apiCreateCategory, apiDeleteCategory, apiGetCategories, apiUpdateCategory } from '../../api/category';
+import Cookies from 'js-cookie';
 
 const ModalCategory = ({ isShowModal, onClose, token }) => {
     const [name, setName] = useState('');
@@ -36,7 +37,7 @@ const ModalCategory = ({ isShowModal, onClose, token }) => {
     }, [dataCategory]);
 
     const handleSave = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (name && time !== '') {
             try {
                 const payload = {
@@ -82,7 +83,7 @@ const ModalCategory = ({ isShowModal, onClose, token }) => {
     };
 
     const handleDelete = async () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get('token');
         if (selectedIndex !== null) {
             const categoryId = dataCategory[selectedIndex]._id;
 

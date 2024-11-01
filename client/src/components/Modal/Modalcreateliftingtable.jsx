@@ -7,6 +7,7 @@ import { apiCreateLiftTable } from '../../api/lifttable';
 import { apiGetTechnicalByStore } from '../../api/store';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
+import Cookies from 'js-cookie';
 
 const useTechnicians = (storeId) => {
     const [technicians, setTechnicians] = useState([]);
@@ -56,7 +57,7 @@ const ModalCreateLiftingTable = ({ isShowModal, onClose, onAddCars }) => {
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
+            const token = Cookies.get('token');
             if (!token) {
                 console.log('Token không tồn tại, người dùng cần đăng nhập lại.');
                 return;

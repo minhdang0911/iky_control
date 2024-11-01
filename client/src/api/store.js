@@ -1,4 +1,5 @@
 import axios from './axios';
+import Cookies from 'js-cookie';
 
 export const apiGetAllStore = () => {
     return axios({
@@ -19,7 +20,7 @@ export const apiCreateStore = (payload) => {
         url: '/store/create',
         method: 'post',
         data: payload,
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        headers: { Authorization: `Bearer ${Cookies.get('token')}` },
     });
 };
 

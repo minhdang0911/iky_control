@@ -1,6 +1,7 @@
 const LiftTable = require('../models/LiftTable');
 const Technician = require('../models/Technician');
 const Store = require('../models/Store');
+const moment = require('moment');
 
 exports.createLiftTable = async (req, res) => {
     const { number, technician, store, description } = req.body;
@@ -23,13 +24,22 @@ exports.createLiftTable = async (req, res) => {
             });
         }
 
-        // Kiểm tra xem số bàn nâng đã tồn tại cho cửa hàng cụ thể chưa
-        const existingLiftTable = await LiftTable.findOne({ number, store });
+        // Lấy ngày hiện tại theo UTC
+        const todayStart = moment.utc().startOf('day').toDate();
+        const todayEnd = moment.utc().endOf('day').toDate();
+
+        // Kiểm tra xem số bàn nâng đã tồn tại cho cửa hàng cụ thể trong ngày hôm nay chưa
+        const existingLiftTable = await LiftTable.findOne({
+            number,
+            store,
+            createdAt: { $gte: todayStart, $lte: todayEnd },
+        });
+
         if (existingLiftTable) {
-            console.log('Bàn nâng đã tồn tại:', existingLiftTable);
+            console.log('Bàn nâng đã tồn tại1:', existingLiftTable);
             return res.status(400).json({
                 success: false,
-                mes: 'Số bàn nâng đã tồn tại. Vui lòng chọn số khác.',
+                mes: 'Số bàn nâng đã tồn tại trong ngày hôm nay. Vui lòng chọn số khác.',
             });
         }
 
@@ -60,7 +70,6 @@ exports.getLiftTables = async (req, res) => {
     try {
         const query = storeId ? { store: storeId } : {};
 
-        // Lấy danh sách bàn nâng và populate thông tin kỹ thuật viên và cửa hàng
         const liftTables = await LiftTable.find(query).populate('technician', 'fullName').populate('store', 'name');
 
         res.status(200).json({
@@ -77,7 +86,7 @@ exports.getLiftTables = async (req, res) => {
 };
 
 exports.deleteLiftTable = async (req, res) => {
-    const { id } = req.params; // Lấy ID từ params
+    const { id } = req.params;
 
     try {
         // Tìm và xóa bàn nâng

@@ -7,6 +7,7 @@ import { FaCheck, FaTimes, FaChevronDown, FaChevronUp, FaTrash } from 'react-ico
 import { toast } from 'react-toastify';
 import { apiGetCategories } from '../../api/category';
 import { apiGetLiftTable } from '../../api/lifttable';
+import moment from 'moment';
 
 const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustomers, dataUser, selectedCustomer }) => {
     const [isOpen, setIsOpen] = useState(true);
@@ -170,11 +171,13 @@ const ModalReceivingCustomer = ({ isShowModal, onHandle, onClose, receivedCustom
                                         <Form.Label>Bàn nâng</Form.Label>
                                         <Form.Select className="input-customer">
                                             <option>Chọn bàn nâng</option>
-                                            {liftTable?.map((items) => (
-                                                <option value={items?._id} key={items?._id}>
-                                                    {`Bàn nâng ${items?.number} `}
-                                                </option>
-                                            ))}
+                                            {liftTable
+                                                ?.filter((item) => moment(item.createdAt).isSame(moment(), 'day'))
+                                                .map((item) => (
+                                                    <option value={item?._id} key={item?._id}>
+                                                        {`Bàn nâng ${item?.number}`}
+                                                    </option>
+                                                ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </div>

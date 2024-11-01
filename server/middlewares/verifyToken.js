@@ -5,18 +5,14 @@ const verifyAccessToken = asyncHandler(async (req, res, next) => {
     if (req?.headers?.authorization?.startsWith('Bearer')) {
         const token = req.headers.authorization.split(' ')[1];
         jwt.verify(token, process.env.JWT_SECRET, (err, decode) => {
-            console.log('Verifying token:', token);
-            console.log('Using secret:', process.env.JWT_SECRET);
-            console.log('Decoded payload before verification:', jwt.decode(token));
-
             if (err) {
-                console.error('Token verification error: ', err); // Log lỗi
+                console.error('Token verification error: ', err);
                 return res.status(401).json({
                     success: false,
                     mes: 'Invalid access token',
                 });
             }
-            req.user = decode; // Đảm bảo decode chứa thông tin người dùng
+            req.user = decode;
             next();
         });
     } else {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'; // Thêm Navigate vào import
 import CarList from './components/ui-users/CarList';
-import Dashboard from './components/ui-staff/carliststaff';
+import Dashboard from './components/ui-staff/CarListStaff';
 import NotFound from './components/Pages/notfound';
 import Login from './components/Login/Login';
 import CreateStore from './components/Admin/Store/ManageStore';

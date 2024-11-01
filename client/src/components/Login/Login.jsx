@@ -391,7 +391,11 @@ const AuthForm = () => {
 
                     toast.success('Mã xác thực đã được gửi');
                 } else if ((response.status = '201' && !isRegister)) {
-                    localStorage.setItem('token', response.token);
+                    Cookies.set('token', response.token, {
+                        httpOnly: false,
+                        secure: false,
+                        expires: 1,
+                    });
                     toast.success('Đăng nhập thành công!');
                     navigate('/control');
                 } else if (response.status === 400) {
@@ -791,6 +795,8 @@ export default AuthForm;
 // import './login.scss';
 // import { IoEyeSharp } from 'react-icons/io5';
 // import { FaEyeSlash } from 'react-icons/fa';
+// import { useNavigate } from 'react-router-dom';
+// import Cookies from 'js-cookie';
 
 // const AuthForm = () => {
 //     const [isLogin, setIsLogin] = useState(true);
@@ -798,6 +804,8 @@ export default AuthForm;
 //     const [password, setPassword] = useState('');
 //     const [loading, setLoading] = useState(false);
 //     const [hidePassword, setHidePassword] = useState(true);
+
+//     const navigate = useNavigate();
 
 //     const handleAuthSubmit = async (e) => {
 //         e.preventDefault();
@@ -834,9 +842,15 @@ export default AuthForm;
 
 //             // Kiểm tra kết quả và lưu accessToken
 //             if (data.result === 1 && data.msg) {
-//                 localStorage.setItem('Access token', data.msg.accessToken); // Lưu accessToken vào localStorage
+//                 // localStorage.setItem('Access token', data.msg.accessToken);
+//                 Cookies.set('Access token', data.msg.accessToken, {
+//                     httpOnly: false, // không thể thiết lập httpOnly từ frontend
+//                     secure: false, // bỏ dùng secure trong môi trường local
+//                     expires: 1, // cookie sẽ hết hạn sau 1 ngày
+//                 });
+
 //                 toast.success('Đăng nhập thành công!');
-//                 window.location.href = '/control'; // Chuyển hướng sau khi đăng nhập
+//                 window.location.href = '/control';
 //             } else {
 //                 toast.error(data.msg || 'Đăng nhập không thành công.');
 //             }
